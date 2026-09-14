@@ -28,3 +28,7 @@
 .tmp-mods/
 **/_*.js
 **/_*.py
+
+# 任意层级的 hvigor 构建缓存
+**/.hvigor/
+
