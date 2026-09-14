@@ -1,4 +1,4 @@
-﻿/**
+/**
  * 单元测试：模拟器平滑游走（simulator.nextValue）
  * 覆盖：物理量程软边界、边界反弹、无标定传感器小幅扰动、小数位数。
  */
@@ -20,9 +20,9 @@ describe('模拟器平滑游走（simulator.nextValue）', () => {
   });
 
   test('从物理上限起步：触边后不再越界', () => {
-    const { normal, spread } = MODEL_CAL.sensor_film_pressure;
+    const { normal, spread } = MODEL_CAL.sensor_vibration;
     const hi = normal + 3.2 * spread;
-    const s = { id: 'sensor_film_pressure_bound', value: hi };
+    const s = { id: 'sensor_vibration', value: hi };
     for (let i = 0; i < 500; i++) {
       s.value = nextValue(s);
       expect(s.value).toBeLessThanOrEqual(hi + 1e-9);
