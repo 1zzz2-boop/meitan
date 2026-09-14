@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>深地智控 · 综合态势大屏</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body class="bigscreen">
+
+  <!-- ============ 顶栏 ============ -->
+  <header class="bs-topbar">
+    <div class="bs-top-left">
+      <h1>深地智控 · 煤矿顶板灾变智能预警综合态势大屏</h1>
+      <p>喀斯特矿区 · 顶板应力场/位移场透明感知 · 数字孪生可视化决策</p>
+    </div>
+    <div class="bs-top-mid">
+      <span class="bs-safe"><b id="bsSafeDays">--</b> 天安全生产运行</span>
+    </div>
+    <div class="bs-top-right">
+      <div class="bs-trio">
+        <span class="bs-trio-item on" title="企业端·生产矿井">企业端</span>
+        <span class="bs-trio-item on" title="智库端·科研机构">智库端</span>
+        <span class="bs-trio-item on" title="监管端·集团/安监部门">监管端</span>
+      </div>
+      <div class="bs-clock">
+        <span id="bsDate">----</span>
+        <b id="bsTime">--:--:--</b>
+      </div>
+      <div class="bs-conn"><span class="led" id="bsLed"></span><span id="bsConnText">数据通道 · 连接中</span></div>
+      <a class="bs-back" href="index.html">返回门户</a>
+    </div>
+  </header>
+
+  <!-- ============ 预警发布滚动横幅（预警发布→可视化呈现联动） ============ -->
+  <div class="bs-banner" id="bsBanner" hidden>
+    <span class="bs-banner-label"><svg class="ico" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;vertical-align:-2px" aria-hidden="true"><use href="#i-zap"/></svg>预警发布</span>
+    <div class="bs-banner-track" id="bsBannerTrack"></div>
+  </div>
+
+  <!-- ============ 闭环流程环（采集→传输→处理→分析→预警→可视化→反馈） ============ -->
+  <nav class="bs-flow" id="bsFlow">
+    <div class="bs-flow-title">全流程闭环</div>
+    <div class="bs-flow-stages" id="bsFlowStages"></div>
+  </nav>
+
+  <!-- ============ 主体三栏 ============ -->
+  <main class="bs-main">
+
+    <!-- 左列 -->
+    <aside class="bs-col bs-left">
+      <section class="bs-panel">
+        <h3>场景图层</h3>
+        <div class="bs-layers" id="bsLayers">
+          <label class="bs-layer on"><input type="checkbox" data-layer="basemap" checked>矿山总览（巷道/工作面）</label>
+          <label class="bs-layer"><input type="checkbox" data-layer="stress">应力场云图（透明感知）</label>
+          <label class="bs-layer"><input type="checkbox" data-layer="displacement">位移场云图（透明感知）</label>
+          <label class="bs-layer"><input type="checkbox" data-layer="geo">地质构造（断层/溶洞/岩性）</label>
+          <label class="bs-layer"><input type="checkbox" data-layer="network">监测网络（布设链路）</label>
+          <label class="bs-layer on"><input type="checkbox" data-layer="alertzone" checked>预警点位</label>
+        </div>
+      </section>
+
+      <section class="bs-panel bs-sensorlist">
+        <h3>传感器清单 <span class="bs-tag" id="bsSensorCount">--</span></h3>
+        <ul id="bsSensorList" class="bs-slist"></ul>
+      </section>
+
+      <section class="bs-panel">
+        <h3>多源数据标准接口</h3>
+        <div class="bs-iface">
+          <div class="bs-iface-row"><span>REST API</span><b>http://localhost:3000/api</b></div>
+          <div class="bs-iface-row"><span>实时通道</span><b>ws://localhost:8080</b></div>
+          <div class="bs-iface-row"><span>数据格式</span><b>JSON · 标准统一</b></div>
+          <div class="bs-iface-row"><span>异构系统对接</span><b>安全监控/生产系统 · 已集成</b></div>
+        </div>
+      </section>
+    </aside>
+
+    <!-- 中心：数字孪生场景 -->
+    <section class="bs-col bs-center">
+      <div class="bs-scene-head">
+        <b>综采工作面 · 顶板透明感知数字孪生场景</b>
+        <span class="bs-scene-hint">按住压力/水压/震动/锚杆测点 → 数值爬升演示；松开 → 逐步回落；单击点位 → 多源融合联动</span>
+      </div>
+      <div class="bs-scene-wrap">
+        <svg id="twinScene" viewBox="0 0 1000 640" preserveAspectRatio="xMidYMid meet">
+          <defs>
+            <linearGradient id="strata" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#22303c"/><stop offset="1" stop-color="#131c24"/>
+            </linearGradient>
+            <pattern id="hatch" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+              <line x1="0" y1="0" x2="0" y2="10" stroke="rgba(255,255,255,.07)" stroke-width="2"/>
+            </pattern>
+            <pattern id="coalmask" width="14" height="14" patternUnits="userSpaceOnUse">
+              <circle cx="4" cy="4" r="1.6" fill="rgba(255,255,255,.05)"/>
+            </pattern>
+            <radialGradient id="stressGlow" cx=".5" cy=".5" r=".5">
+              <stop offset="0" stop-color="rgba(255,140,60,.30)"/><stop offset="1" stop-color="rgba(255,140,60,0)"/>
+            </radialGradient>
+            <radialGradient id="dispGlow" cx=".5" cy=".5" r=".5">
+              <stop offset="0" stop-color="rgba(88,166,160,.26)"/><stop offset="1" stop-color="rgba(88,166,160,0)"/>
+            </radialGradient>
+            <filter id="blur2"><feGaussianBlur stdDeviation="2"/></filter>
+            <marker id="arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto">
+              <path d="M0,0 L8,4 L0,8 z" fill="#4d5c6b"/>
+            </marker>
+          </defs>
+
+          <!-- 地层背景 -->
+          <rect x="0" y="0" width="1000" height="640" fill="url(#strata)"/>
+          <rect x="0" y="0" width="1000" height="640" fill="url(#coalmask)"/>
+          <rect x="0" y="96" width="1000" height="6" fill="#0a1117"/>
+
+          <!-- 地表设施 -->
+          <g stroke="#4d5c6b" fill="#26333f" stroke-width="2">
+            <rect x="105" y="60" width="52" height="36" fill="#1d2833"/>
+            <path d="M114,60 L131,42 L148,60 Z" fill="#5a6b7c"/>
+            <text x="131" y="82" font-size="11" fill="#8a97a5" text-anchor="middle" font-family="inherit">主井</text>
+            <rect x="460" y="66" width="46" height="30" fill="#1d2833"/>
+            <text x="483" y="87" font-size="11" fill="#8a97a5" text-anchor="middle">副井</text>
+            <rect x="805" y="62" width="60" height="34" fill="#1d2833"/>
+            <circle cx="822" cy="79" r="6" fill="#5a6b7c"/>
+            <circle cx="848" cy="79" r="6" fill="#5a6b7c"/>
+            <text x="835" y="86" font-size="11" fill="#8a97a5" text-anchor="middle">风机房</text>
+          </g>
+          <!-- 井筒 -->
+          <g stroke="#2c3a47" stroke-width="12" fill="none">
+            <line x1="131" y1="96" x2="131" y2="470"/>
+            <line x1="483" y1="96" x2="483" y2="220"/>
+          </g>
+          <g stroke="#3a4c5c" stroke-width="3" fill="none" opacity=".7">
+            <line x1="131" y1="96" x2="131" y2="470"/>
+            <line x1="483" y1="96" x2="483" y2="220"/>
+          </g>
+
+          <!-- 采空区 -->
+          <rect x="46" y="218" width="94" height="254" fill="rgba(255,255,255,.02)" stroke="#2c3a47" stroke-dasharray="5 4"/>
+          <rect x="46" y="218" width="94" height="254" fill="url(#hatch)"/>
+          <text x="93" y="350" font-size="12" fill="#5f6e7d" text-anchor="middle" transform="rotate(-90 93 350)">采空区</text>
+
+          <!-- 巷道（双线） -->
+          <g stroke="#15222c" stroke-width="26" fill="none" stroke-linecap="round">
+            <line x1="140" y1="220" x2="870" y2="220"/>
+            <line x1="140" y1="470" x2="870" y2="470"/>
+            <line x1="140" y1="220" x2="140" y2="470"/>
+          </g>
+          <g stroke="#3b4c5c" stroke-width="7" fill="none" stroke-linecap="round">
+            <line x1="140" y1="220" x2="870" y2="220"/>
+            <line x1="140" y1="470" x2="870" y2="470"/>
+            <line x1="140" y1="220" x2="140" y2="470"/>
+          </g>
+          <text x="150" y="215" font-size="12" fill="#6b7c8c">回风巷 · 岩溶水富集区</text>
+          <text x="150" y="493" font-size="12" fill="#6b7c8c">运输巷 · 主运输与监测干线</text>
+
+          <!-- 综采工作面 -->
+          <rect x="140" y="220" width="88" height="250" fill="#18232e" stroke="#3d5c56" stroke-width="2"/>
+          <g stroke="#3d5c56" stroke-width="2" opacity=".55">
+            <line x1="140" y1="248" x2="228" y2="248"/>
+            <line x1="140" y1="276" x2="228" y2="276"/>
+            <line x1="140" y1="304" x2="228" y2="304"/>
+            <line x1="140" y1="332" x2="228" y2="332"/>
+            <line x1="140" y1="360" x2="228" y2="360"/>
+            <line x1="140" y1="388" x2="228" y2="388"/>
+            <line x1="140" y1="416" x2="228" y2="416"/>
+            <line x1="140" y1="444" x2="228" y2="444"/>
+          </g>
+          <text x="184" y="335" font-size="13" fill="#7fb3ac" text-anchor="middle" transform="rotate(-90 184 335)" font-weight="bold">综采工作面</text>
+          <text x="184" y="432" font-size="10" fill="#5c6c7a" text-anchor="middle">液压支架 · 工作阻力测点</text>
+
+          <!-- 实体煤 -->
+          <text x="830" y="600" font-size="12" fill="#485766">实体煤柱 · 应力集中区</text>
+
+          <!-- ===== 应力场云图图层 ===== -->
+          <g id="layer-stress" class="field-layer" data-layer="stress">
+            <circle class="cloud" data-field="stress" cx="184" cy="330" r="170" fill="url(#stressGlow)"/>
+            <circle class="cloud" data-field="stress" cx="330" cy="195" r="95" fill="url(#stressGlow)"/>
+            <circle class="cloud" data-field="stress" cx="520" cy="180" r="110" fill="url(#stressGlow)"/>
+            <circle cx="184" cy="330" r="90" fill="none" stroke="rgba(255,140,60,.28)" stroke-dasharray="3 5" filter="url(#blur2)"/>
+            <text x="300" y="330" font-size="11" fill="#e88a55" opacity=".8">应力集中区</text>
+          </g>
+
+          <!-- ===== 位移场云图图层 ===== -->
+          <g id="layer-displacement" class="field-layer" data-layer="displacement">
+            <circle class="cloud" data-field="disp" cx="330" cy="470" r="120" fill="url(#dispGlow)"/>
+            <circle class="cloud" data-field="disp" cx="520" cy="470" r="120" fill="url(#dispGlow)"/>
+            <circle class="cloud" data-field="disp" cx="710" cy="470" r="120" fill="url(#dispGlow)"/>
+            <circle cx="330" cy="470" r="70" fill="none" stroke="rgba(88,166,160,.35)" stroke-dasharray="3 5" filter="url(#blur2)"/>
+            <text x="330" y="545" font-size="11" fill="#6fb5ae" opacity=".8">巷道位移变形区</text>
+          </g>
+
+          <!-- ===== 地质构造图层 ===== -->
+          <g id="layer-geo" class="field-layer" data-layer="geo">
+            <!-- 岩性分区 -->
+            <path class="geo-el" data-geo="interbed" d="M230,96 L700,96 L560,300 L300,260 Z" fill="rgba(120,150,130,.08)" stroke="rgba(120,150,130,.25)" stroke-dasharray="6 5"/>
+            <text x="470" y="150" font-size="11" fill="rgba(150,180,160,.6)">砂泥岩互层 · 弱结构面</text>
+            <path class="geo-el" data-geo="aquifer" d="M700,96 L1000,96 L1000,260 L640,330 Z" fill="rgba(110,130,170,.07)" stroke="rgba(110,130,170,.22)" stroke-dasharray="6 5"/>
+            <text x="830" y="170" font-size="11" fill="rgba(150,165,200,.6)">灰岩含水层 · 喀斯特发育</text>
+            <!-- 断层线 -->
+            <path class="geo-el" data-geo="f1" d="M240,90 C310,170 380,220 520,300 L620,370" fill="none" stroke="#d55353" stroke-width="2.5" stroke-dasharray="8 5" opacity=".85"/>
+            <text x="430" y="250" font-size="11" fill="#d55353">F₁ 断层 · 导水通道</text>
+            <!-- 溶洞区 -->
+            <ellipse class="cloud geo-el" data-field="water" data-geo="karst1" cx="330" cy="190" rx="72" ry="34" fill="rgba(88,166,160,.10)" stroke="#58a6a0" stroke-width="1.6" stroke-dasharray="5 4"/>
+            <ellipse cx="330" cy="190" rx="40" ry="16" fill="rgba(88,166,160,.12)"/>
+            <text x="330" y="165" font-size="11" fill="#7cc7c0">岩溶溶洞 · 突水风险源</text>
+            <ellipse class="cloud geo-el" data-field="water" data-geo="karst2" cx="520" cy="175" rx="88" ry="40" fill="rgba(88,166,160,.10)" stroke="#58a6a0" stroke-width="1.6" stroke-dasharray="5 4"/>
+            <ellipse cx="520" cy="175" rx="48" ry="19" fill="rgba(88,166,160,.12)"/>
+            <text x="520" y="148" font-size="11" fill="#7cc7c0">岩溶水压 · 富水异常区</text>
+          </g>
+
+          <!-- ===== 监测网络图层（链路由 JS 动态绘制） ===== -->
+          <g id="layer-network" class="field-layer" data-layer="network"></g>
+          <!-- 链路数据包动画（数据传输可视化） -->
+          <g id="netPackets"></g>
+
+          <!-- ===== 预警点位图层（预警光晕的显隐开关） ===== -->
+          <g id="layer-alertzone" class="field-layer on" data-layer="alertzone"></g>
+
+          <!-- ===== 传感器点位 / 预警光晕（JS 动态渲染） ===== -->
+          <g id="sceneAlerts"></g>
+          <g id="cloudRings"></g>
+          <g id="sceneDots"></g>
+          <g id="sceneLabels"></g>
+        </svg>
+
+        <!-- 预警依据弹窗 -->
+        <div class="bs-alert-modal" id="bsAlertModal">
+          <div class="bs-alert-card">
+            <h4>预警依据 <span id="bsAmLevel" class="bs-lv"></span></h4>
+            <div class="bs-am-body" id="bsAmBody"></div>
+            <div class="bs-am-actions">
+              <button class="btn" id="bsAmHandle">确认处置</button>
+              <button class="btn ghost" id="bsAmClose">关闭</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 地质素描信息卡（地质构造要素点击联动） -->
+        <div class="bs-alert-modal" id="bsGeoModal">
+          <div class="bs-alert-card">
+            <h4>地质素描 · 顶板灾变关联 <span id="bsGeoName" class="bs-lv lv0"></span></h4>
+            <div class="bs-am-body" id="bsGeoBody"></div>
+            <div class="bs-am-actions">
+              <button class="btn ghost" id="bsGeoClose">关闭</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 监测网络拓扑卡（点击LoRa网关联动） -->
+        <div class="bs-alert-modal" id="bsNetModal">
+          <div class="bs-alert-card">
+            <h4>监测网络拓扑 <span class="bs-lv lv0">LoRa 自组网</span></h4>
+            <div class="bs-am-body" id="bsNetBody"></div>
+            <div class="bs-am-actions">
+              <button class="btn ghost" id="bsNetClose">关闭</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 场景图例 -->
+      <div class="bs-legend">
+        <span><i class="lg green"></i>正常</span>
+        <span><i class="lg amber"></i>黄色预警</span>
+        <span><i class="lg orange"></i>橙色预警</span>
+        <span><i class="lg red"></i>红色预警</span>
+        <span><i class="lg demo"></i>可按住演示（爬升/回落）</span>
+      </div>
+    </section>
+
+    <!-- 右列 -->
+    <aside class="bs-col bs-right">
+      <section class="bs-panel bs-fusion">
+        <h3>多源数据融合 <span class="bs-tag" id="bsFusionTag">点位联动</span></h3>
+        <div id="bsFusionBody" class="bs-fusion-body"><!-- 联动内容 --></div>
+      </section>
+
+      <section class="bs-panel bs-risk">
+        <h3>综合风险指数 <span class="bs-tag" id="bsRiskLevel">--</span></h3>
+        <div class="bs-risk-body">
+          <svg id="riskRing" viewBox="0 0 120 120" class="bs-ring"></svg>
+          <div class="bs-risk-num" id="bsRiskNum">--</div>
+          <div class="bs-risk-sub" id="bsRiskSub">计算中…</div>
+        </div>
+      </section>
+
+      <section class="bs-panel bs-alerts">
+        <h3>实时预警 <span class="bs-tag red" id="bsAlertCount">0</span></h3>
+        <ul class="bs-alist" id="bsAlertList"><li class="bs-empty">暂无预警</li></ul>
+      </section>
+    </aside>
+  </main>
+
+  <!-- ============ 底部 KPI 带 ============ -->
+  <footer class="bs-footer">
+    <div class="bs-kpi">
+      <span class="bs-kpi-label">顶板压力</span>
+      <b id="kpiPressure">--</b>
+      <span class="bs-kpi-unit" id="kpiPressureUnit">kN</span>
+    </div>
+    <div class="bs-kpi">
+      <span class="bs-kpi-label">顶板下沉</span>
+      <b id="kpiSink">--</b>
+      <span class="bs-kpi-unit">m</span>
+    </div>
+    <div class="bs-kpi">
+      <span class="bs-kpi-label">岩溶水压</span>
+      <b id="kpiWater">--</b>
+      <span class="bs-kpi-unit">MPa</span>
+    </div>
+    <div class="bs-kpi">
+      <span class="bs-kpi-label">设备工况</span>
+      <b id="kpiDevice">--</b>
+      <span class="bs-kpi-unit" id="kpiDeviceUnit">在线</span>
+    </div>
+    <div class="bs-kpi">
+      <span class="bs-kpi-label">环境温度</span>
+      <b id="kpiTemp">--</b>
+      <span class="bs-kpi-unit">℃</span>
+    </div>
+    <div class="bs-kpi">
+      <span class="bs-kpi-label">有害气体</span>
+      <b id="kpiGas">--</b>
+      <span class="bs-kpi-unit" id="kpiGasUnit">%</span>
+    </div>
+    <div class="bs-kpi">
+      <span class="bs-kpi-label">未处置预警</span>
+      <b id="kpiUnhandled">0</b>
+      <span class="bs-kpi-unit">条</span>
+    </div>
+    <div class="bs-kpi">
+      <span class="bs-kpi-label">应急响应</span>
+      <b id="kpiResp">--</b>
+      <span class="bs-kpi-unit" id="kpiRespUnit">s</span>
+    </div>
+  </footer>
+
+  <script src="assets/app.js?v=20260914"></script>
+  <script>
+    /* 登录保护：未登录跳转登录页（带 target 回跳大屏） */
+    requireLogin('bigscreen.html');
+    /* 返回按钮 → 回到来源端（三端入口带 ?from=xx），默认返回门户 */
+    (function () {
+      const from = new URLSearchParams(location.search).get('from');
+      const back = document.querySelector('.bs-back');
+      if (back && from) back.href = from;
+    })();
+  </script>
+  <script src="assets/bigscreen.js?v=20260914"></script>
+</body>
+</html>

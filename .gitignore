@@ -1,0 +1,30 @@
+﻿/node_modules
+/oh_modules
+/local.properties
+/.idea
+**/build
+/.hvigor
+.cxx
+/.clangd
+/.clang-format
+/.clang-tidy
+**/.test
+/.appanalyzer
+# AI 工具工作区配置
+/.lingma
+/.trae
+
+# Deepin 适配副本（以 qianduanyemian + backend 为准，不同步）
+/qianduandeepin
+
+# 演示连接工具（含大量压缩包/二进制）
+/连接工具
+
+# 压缩包产物
+*.rar
+*.zip
+
+# 临时/一次性脚本产物
+.tmp-mods/
+**/_*.js
+**/_*.py

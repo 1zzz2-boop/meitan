@@ -1,0 +1,97 @@
+⚠️ 常见缺陷（连“小规模真实使用”都不合格）
+密码明文存储、种子密码全是 123456——auth.service.js 直接 user.password !== password，这是真实系统里最不能容忍的点。
+验证码是前端生成的、且无次数/频率限制——防不了爆破，等于装饰。
+无角色权限精细控制（RBAC）：三端只是前端 Tab 分流，后端接口没按角色鉴权，换个请求头就可能越权。
+后端不可达时用“本地演示账号兜底登录”——LoginPage.ets 里这段逻辑在真实系统里必须删掉。
+无审计日志、无操作留痕。
+❌ 安全攸关系统的硬性要求（现在完全不具备）
+真实井下传感数据接入：现在推的多数是模拟/演示数据，没接实际传感器/PLC。
+等保 2.0/煤矿相关规范：这类系统按规定必须做等保、双机热备、数据备份、容灾。
+正式部署：HTTPS、域名、进程守护、监控告警、持续备份。
+
+
+
+本次新增/补齐（代码级）
+删除演示兜底登录：LoginPage.ets 后端不可达直接拒绝并提示，不再伪造本地账号。
+RBAC 写到写接口（原来只落到审计路由）：用户管理=监管端、派单/派单状态=监管端、报表生成=智库端、阈值配置=企业/监管、预警处置=企业/监管；用户资料改回仅本人+监管。安全测试实测：非监管端调 /api/audit、POST /api/users 均返回 403。
+登录/验证码防爆破：rate-limit.js 同一账号 5 次/分 + 同 IP 20 次/分，超限返回 429（实测第 6 次错密触发）。
+审计日志：已建 audit_logs 表并落库（登录/改密/派单/阈值/预警处置/越权等），监管端 GET /api/audit 可查。
+鸿蒙端 token：BackendApi.ets 记录 token 并自动带 Authorization: Bearer；登录成功持久化、三个 Dashboard 退出登录清 token。
+数据库迁移：users.password 加宽到 VARCHAR(255)（已用 postgres 超管执行，coal_app 权限不够）。
+验证：后端重启后新接口正常、安全项全部验证通过；鸿蒙 ArkTS BUILD SUCCESSFUL（增量 12s）。
+
+无法靠改代码完成、属工程/部署硬件的部分
+你列的下半段是上线治理，不是单文件能解决的：
+
+真实井下传感/PLC 接入——需在现场用 Modbus/OPC-UA 网关对接，代码侧已预留 POST /api/sensor/update 采集口，但要接实际硬件。
+等保 2.0 / 煤矿规范——需做定级备案、测评整改，双机热备 + 数据备份 + 容灾属集群/运维建设。
+正式部署——HTTPS 证书、域名、pm2 等进程守护、Prometheus 监控告警、定时全量+归档备份（现只有单机 Express，会话/限流是内存态，多实例需改 Redis）。
+这些需要你决策方向后我再落地（例如先把后端改造支持 Redis 会话/限流、加定时备份脚本、补 HTTPS 中间件）。是否需要我继续推进其中某项？
+
+
+
+
+1. Redis 会话/限流改造
+新增 kv-store.js：设置 REDIS_URL 才用 Redis（多实例共享会话、分布式限流），未配置自动回退内存态——本机无 Redis 也能跑，不破坏开发。
+session.service.js、rate-limit.js 改为基于 KV 存储、异步接口（限流窗口用秒）。
+已安装 redis 依赖（原有依赖完整）。
+2. HTTPS 中间件
+server.js 支持 HTTPS_ENABLED=true 时启用 TLS，REDIRECT_HTTPS=true 时明文 HTTP 301 跳转；默认关闭，不干扰鸿蒙端 http://10.0.2.2:3000 。
+自签证书脚本 generate-selfsigned-cert.js（已生成 backend/certs/，正式上线请换权威证书）。
+实测：临时 HTTPS 实例 curl -k 返回 API，TLS 正常。
+3. 定时备份脚本
+backup-db.js：pg_dump+gzip 备份到 backend/backups/，按保留天数清理；两种调度——常驻 node scripts/backup-db.js --daemon（每 BACKUP_INTERVAL_HOURS 小时）或外部 cron/Task Scheduler 单次触发。
+实测：打出 812 KB .sql.gz（自动探测到 Git 自带 gzip）。
+回归验证：登录 200、非监管端 /api/audit 403、错密连登第 6 次 429。修掉一个漏导出 ttlSeconds 的运行时崩溃。主后端已在端口 3000 运行新代码。
+
+需要我把这套打成一个现成的 pm2/进程守护 + cron 部署脚本，或把 KV 限流/会话进一步迁移到 Redis 实例配置吗？
+
+
+
+
+pm2 部署脚本已生成（无需改业务代码，后端进程仍在 3000 正常运行）。
+
+产物
+ecosystem.config.js —— 两个应用：
+
+coal-backend：Express 后端，fork 单实例（配了 REDIS_URL 后才值得扩实例/集群），带 max_memory_restart、指数退避重启、kill_timeout=9s 对应 server.js 的优雅退出（关 WS/Redis/DB），env_production 自动开 HTTPS_ENABLED=true。
+coal-backup：常驻备份守护（实际上 pm2 也在守护它，崩溃自动拉起来）。
+deploy.sh（Linux/Deepin/Git Bash）与 deploy.ps1（当前 Windows 开发机），命令一致：
+
+
+Plain Text
+
+./deploy.sh install     # npm 装依赖 + 启动 + pm2 save 自启
+./deploy.sh start|restart|stop|status|logs|backup|uninstall
+未装 pm2 会自动 npm i -g pm2。
+生产模式：APP_ENV=production ./deploy.sh start（开启 HTTPS）。
+备份参数沿用 BACKUP_INTERVAL_HOURS / BACKUP_RETENTION_DAYS。
+./deploy.sh status 会输出两条应用（backend + backup）；pm2 startup（Linux）生成系统服务实现开机自启。
+
+使用时注意
+现在端口 3000 上仍有一个手动 node server.js 在我这边挂着。若你要用 pm2 接管，需先停掉它再 pm2 start，否则会因端口占用反复重启。需要我现在就装 pm2 并把当前后端切到 pm2 管理吗？
+
+
+
+
+
+
+
+
+完成。后端已由 pm2 接管。
+
+执行结果
+pm2 7.0.4 已全局安装并守护化（沙箱外执行写入 AppData\Roaming\npm）。
+停掉了原先手动 node server.js 的进程，改为 pm2 start ecosystem.config.js（开发环境）。
+pm2 status：
+
+app	pid	uptime	重启	status
+coal-backend	14804	31s	0	🔵 online
+coal-backup	30328	31s	0	🔵 online
+后端 http://localhost:3000 返回 HTTP 200。
+备份守护启动时已实跑一次（新增 coal_mine_guard_20260905_220322.sql.gz，828 KB），并进入 每 24h 定时循环。
+已 pm2 save（进程表持久化），用 pm2 status/pm2 logs/deploy.sh 即可运维。
+说明
+本机 npm 全局 bin 不在默认 PATH，当前会话已把它临时加入了 $env:Path。新开的终端/IDE 里直接敲 pm2 可能找不到，建议把 C:\Users\xianshang\AppData\Roaming\npm 加进系统 PATH，或统一用 deploy.ps1/deploy.sh 调用。
+生产上线时用 APP_ENV=production ./deploy.sh start（自动开 HTTPS，需证书）；Linux 上再补 pm2 startup 生成系统服务实现开机自启。
+

@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>企业端 · 深地智控</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="app-bg"></div>
+<div id="app" style="display:flex;flex-direction:row">
+  <aside class="sidebar">
+    <div class="brand"><div class="mark" id="brandMark">🏭</div><div><h1>深地智控 · 企业端</h1><p>PRODUCTION MINE · ENTERPRISE</p></div></div>
+    <nav class="nav">
+      <div class="nav-sec">管控中心</div>
+      <div class="nav-item" data-view="overview"><span class="ico">📊</span>综合总览</div>
+      <div class="nav-item" data-view="monitor"><span class="ico">📡</span>实时监测</div>
+      <div class="nav-item" data-view="alert"><span class="ico">🚨</span>预警管理<span class="dot" id="navAlertDot" style="display:none"></span></div>
+      <div class="nav-item" data-view="analysis"><span class="ico">📈</span>数据分析</div>
+      <div class="nav-sec">数字孪生</div>
+      <div class="nav-item" data-view="twin"><span class="ico">🧊</span>三维孪生场景</div>
+      <div class="nav-item" data-link="bigscreen.html?from=enterprise.html"><span class="ico">🖥️</span>综合态势大屏</div>
+      <div class="nav-sec">协同治理</div>
+      <div class="nav-item" data-view="collab"><span class="ico">🤝</span>三端协同</div>
+      <div class="nav-item" data-view="settings"><span class="ico">⚙️</span>系统设置</div>
+    </nav>
+    <div class="side-user">
+      <div class="u"><div class="ava">企</div><div><div class="un" id="sideUserName">--</div><div class="ur" id="sideUserRole">企业端 · 生产矿井</div></div></div>
+      <button class="out" id="logoutBtn">退出登录</button>
+    </div>
+  </aside>
+  <div style="flex:1;display:flex;flex-direction:column;min-width:0">
+    <header class="header">
+      <div class="page-title"><h2 id="pageTitle">--</h2><p id="pageSub">--</p></div>
+      <div class="h-right">
+        <div class="h-chip"><span class="led gray" id="connLed"></span><span id="connText">连接中...</span></div>
+        <div class="h-sep"></div><div class="h-clock" id="clock">--:--:--</div>
+        <div class="h-sep"></div><div class="h-user">👤 <span id="headerUserName">--</span></div>
+      </div>
+    </header>
+    <main class="main" id="main">
+
+      <!-- ==================== 综合总览 ==================== -->
+      <section class="view" id="view-overview">
+        <div class="grid g-kpi" id="ovKpis"></div>
+        <div class="grid g-12" style="margin-top:16px">
+          <div class="panel col-8">
+            <div class="panel-title">顶板压力趋势（24h）<span class="tag">实时曲线</span></div>
+            <div id="pressureChart" style="height:210px"></div>
+          </div>
+          <div class="panel col-4">
+            <div class="panel-title">综合风险仪表<span class="tag">RISK INDEX</span></div>
+            <div id="gauge" style="height:210px"></div>
+          </div>
+        </div>
+        <div class="grid g-3" style="margin-top:16px">
+          <div class="tri-card t-ent">
+            <div class="t-head"><div class="t-ico">🏭</div><div><div class="t-name">企业端</div><div class="t-sub">生产矿井 · 现场管控</div></div></div>
+            <div class="t-stat" id="triEntStat">--<em>台在线</em></div>
+            <div class="t-list"><b>实时监测：</b>应力 / 位移场透明化感知<br><b>预警处置：</b>三级预警分级响应<br><b>数字孪生：</b>巷道三维实时映射</div>
+          </div>
+          <div class="tri-card t-think">
+            <div class="t-head"><div class="t-ico">🎓</div><div><div class="t-name">智库端</div><div class="t-sub">高校科研 · 技术研发</div></div></div>
+            <div class="t-stat" id="triThinkStat">--<em>% 准确率</em></div>
+            <div class="t-list"><b>数据分析：</b>趋势 / 威胁度关联分析<br><b>模型迭代：</b>数字孪生 AI 模型优化<br><b>研究报告：</b>周期性矿压规律分析</div>
+          </div>
+          <div class="tri-card t-sup">
+            <div class="t-head"><div class="t-ico">🏛️</div><div><div class="t-name">监管端</div><div class="t-sub">集团 / 安监 · 远程监管</div></div></div>
+            <div class="t-stat" id="triSupStat">--<em>条待监管</em></div>
+            <div class="t-list"><b>远程监控：</b>多矿井集中监管<br><b>应急调度：</b>跨端协同调度指令<br><b>监管报告：</b>安全生产态势报告</div>
+          </div>
+        </div>
+        <div class="grid g-12" style="margin-top:16px">
+          <div class="panel col-12">
+            <div class="panel-title">最近预警<span class="tag" id="ovAlertTag">未处理</span></div>
+            <div id="ovAlertList"></div>
+          </div>
+        </div>
+        <div class="grid g-12" style="margin-top:16px">
+          <div class="panel col-12">
+            <div class="panel-title">全流程数据闭环<span class="tag">LIVE LOOP</span></div>
+            <div class="flow">
+              <div class="f-node"><div class="f-ico">📡</div><div class="f-name">采集</div><div class="f-sub">多源传感器组网</div></div>
+              <div class="f-arrow">➜</div>
+              <div class="f-node"><div class="f-ico">📤</div><div class="f-name">传输</div><div class="f-sub">LoRa+MQTT 上行</div></div>
+              <div class="f-arrow">➜</div>
+              <div class="f-node"><div class="f-ico">⚙️</div><div class="f-name">处理</div><div class="f-sub">边缘/云端预处理</div></div>
+              <div class="f-arrow">➜</div>
+              <div class="f-node"><div class="f-ico">🧮</div><div class="f-name">分析</div><div class="f-sub">压力/位移场分析</div></div>
+              <div class="f-arrow">➜</div>
+              <div class="f-node"><div class="f-ico">🚨</div><div class="f-name">预警</div><div class="f-sub">三级分级预警</div></div>
+              <div class="f-arrow">➜</div>
+              <div class="f-node"><div class="f-ico">🖥️</div><div class="f-name">可视化</div><div class="f-sub">孪生场景呈现</div></div>
+              <div class="f-arrow">➜</div>
+              <div class="f-node"><div class="f-ico">🔄</div><div class="f-name">反馈</div><div class="f-sub">处置闭环反馈</div></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== 实时监测 ==================== -->
+      <section class="view" id="view-monitor">
+        <div class="grid g-4" id="monKpis"></div>
+        <div class="grid g-12" style="margin-top:16px">
+          <div class="panel col-12">
+            <div class="panel-title">传感器实时监测<span class="tag l" id="monTag">实时数据</span><button class="btn sm" id="pauseBtn" onclick="togglePause()">暂停刷新</button></div>
+            <div class="sensor-grid" id="sensorGrid"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== 预警管理 ==================== -->
+      <section class="view" id="view-alert">
+        <div class="grid g-4" id="alertKpis"></div>
+        <div class="grid g-12" style="margin-top:16px">
+          <div class="panel col-12">
+            <div class="panel-title">预警管理列表<span class="tag" id="alertCountTag">-- 条记录</span><button class="btn red sm" onclick="clearAllAlerts()">✔ 确认全部</button></div>
+            <div id="alertTableWrap"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== 数据分析 ==================== -->
+      <section class="view" id="view-analysis">
+        <div class="grid g-4" id="anaKpis"></div>
+        <div class="grid g-12" style="margin-top:16px">
+          <div class="panel col-8">
+            <div class="panel-title">顶板压力趋势分析<span class="tag">24H TREND</span></div>
+            <div id="anaChart" style="height:210px"></div>
+          </div>
+          <div class="panel col-4">
+            <div class="panel-title">传感器威胁度<span class="tag">THREAT</span></div>
+            <div id="threatList" style="max-height:290px;overflow-y:auto"></div>
+          </div>
+        </div>
+        <div class="grid g-12" style="margin-top:16px">
+          <div class="panel col-12">
+            <div class="panel-title">多源监测融合曲线<span class="tag">力 · 位移 · 震动</span></div>
+            <div id="fuseChart" style="height:230px"></div>
+            <div class="fuse-legend">
+              <span class="lg"><i style="background:var(--orange)"></i>力 / 顶板压力</span>
+              <span class="lg"><i style="background:var(--green)"></i>位移 / 巷道形变</span>
+              <span class="lg"><i style="background:#5b8db8;"></i>震动 / 微震强度</span>
+              <span style="margin-left:auto;color:var(--muted-2);font-size:11px">多源归一化叠加 · 阈值参考 80</span>
+            </div>
+          </div>
+        </div>
+        <div class="grid g-3" style="margin-top:16px">
+          <div class="panel">
+            <div class="panel-title">安全结论<span class="tag l">CONCLUSION</span></div>
+            <div class="m-desc">当前顶板压力处于<b>安全区间</b>（阈值 80 kN），系统综合风险指数 <b id="anaRiskTxt">--%</b>，整体运行态势稳定可控；近 24h 峰值出现在回采作业时段，未触发红色预警。</div>
+          </div>
+          <div class="panel">
+            <div class="panel-title">关注建议<span class="tag">ADVICE</span></div>
+            <div class="m-desc">建议对 70-90 kN 区间压力<b>加密采样</b>并复核传感器定标；关注震动传感器频次升高区域与顶板离层趋势；每班次核查传感器在线率与通信链路完好性。</div>
+          </div>
+          <div class="panel">
+            <div class="panel-title">机理说明<span class="tag">MECHANISM</span></div>
+            <div class="m-desc">顶板灾变主要由<b>采动应力叠加、顶板离层、支护失效</b>等因素诱发。系统基于数字孪生 AI 模型，融合压力 / 位移 / 震动多源数据实时评估灾变风险，实现灾害超前预警。</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== 三维孪生场景 ==================== -->
+      <section class="view" id="view-twin">
+        <div class="panel" style="padding:10px">
+          <div class="twin-stage" id="twinStage">
+            <div class="twin-overlay">
+              <button class="btn sm solid" id="twinTopBtn" onclick="setTwinMode('top')">俯视图</button>
+              <button class="btn sm ghost" id="twinSideBtn" onclick="setTwinMode('side')">侧视图</button>
+              <button class="btn sm" id="twinVrBtn" onclick="enterVR()">进入VR模式</button>
+            </div>
+            <div id="twinScene" style="position:absolute;inset:0"></div>
+            <div class="twin-sensors" id="twinSensors"></div>
+            <div class="twin-legend">
+              <div class="lg"><i style="background:var(--green)"></i>正常点位</div>
+              <div class="lg"><i style="background:var(--amber)"></i>黄色预警</div>
+              <div class="lg"><i style="background:var(--orange)"></i>橙色预警</div>
+              <div class="lg"><i style="background:var(--red)"></i>红色预警</div>
+              <div style="margin-top:4px;color:var(--muted-2)">点击右侧点位可高亮对应传感器</div>
+            </div>
+            <div id="vrOverlay" style="display:none;position:absolute;inset:0;z-index:8"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== 三端协同 ==================== -->
+      <section class="view" id="view-collab">
+        <div class="grid g-3">
+          <div class="tri-card t-ent">
+            <div class="t-head"><div class="t-ico">🏭</div><div><div class="t-name">企业端</div><div class="t-sub">生产矿井 · 现场管控中心</div></div></div>
+            <div class="t-stat" id="collabEntStat">--<em>台在线</em></div>
+            <div class="t-list"><b>职责：</b>生产现场实时监测与预警处置<br><b>能力：</b>传感器组网 / 阈值配置 / 孪生场景<br><b>协同：</b>向上级监管端上报态势，向智库端提供样本</div>
+          </div>
+          <div class="tri-card t-think">
+            <div class="t-head"><div class="t-ico">🎓</div><div><div class="t-name">智库端</div><div class="t-sub">高校科研 · 技术研发中心</div></div></div>
+            <div class="t-stat" id="collabThinkStat">--<em>% 准确率</em></div>
+            <div class="t-list"><b>职责：</b>数据研究、模型迭代与报告输出<br><b>能力：</b>趋势 / 威胁度分析、数字孪生 AI 模型<br><b>协同：</b>向企业端回传模型优化建议与研究报告</div>
+          </div>
+          <div class="tri-card t-sup">
+            <div class="t-head"><div class="t-ico">🏛️</div><div><div class="t-name">监管端</div><div class="t-sub">集团 / 安监部门 · 远程管理</div></div></div>
+            <div class="t-stat" id="collabSupStat">--<em>条待监管</em></div>
+            <div class="t-list"><b>职责：</b>多矿井远程集中监管与应急调度<br><b>能力：</b>跨矿井预警态势 / 调度指令<br><b>协同：</b>向企业端下发检查指令与应急响应要求</div>
+          </div>
+        </div>
+        <div class="grid g-12" style="margin-top:16px">
+          <div class="panel col-6">
+            <div class="panel-title">数据共享与集成<span class="tag">DATA INTEGRATION</span></div>
+            <div class="list-item"><div class="li-ico">🔌</div><div class="li-body"><div class="li-t">标准数据接口</div><div class="li-d">统一 RESTful API / JSON 数据结构，三端共享同一实时数据源，接口语义一致。</div></div></div>
+            <div class="list-item"><div class="li-ico">📡</div><div class="li-body"><div class="li-t">LoRa + MQTT 上行</div><div class="li-d">井下传感器经 LoRa 组网汇聚至边缘网关，经 MQTT 上行云端实时入库并广播。</div></div></div>
+            <div class="list-item"><div class="li-ico">🧠</div><div class="li-body"><div class="li-t">数字孪生 AI 模型</div><div class="li-d">企业端实时映射现场 + 智库端模型迭代训练 + 监管端远程决策支持，模型成果三端共用。</div></div></div>
+          </div>
+          <div class="panel col-6">
+            <div class="panel-title">应急响应协同<span class="tag">EMERGENCY</span></div>
+            <div class="list-item"><div class="li-ico">🟡</div><div class="li-body"><div class="li-t">黄色响应 <span class="badge amber">Ⅲ 级</span></div><div class="li-d">预警自动推送至企业端值班大屏，提示加密监测与重点巡检。</div></div></div>
+            <div class="list-item"><div class="li-ico">🟠</div><div class="li-body"><div class="li-t">橙色响应 <span class="badge orange">Ⅱ 级</span></div><div class="li-d">企业端启动专项检查并上报处置反馈，监管端同步跟踪督办。</div></div></div>
+            <div class="list-item"><div class="li-ico">🔴</div><div class="li-body"><div class="li-t">红色响应 <span class="badge red">Ⅰ 级</span></div><div class="li-d">全端联动：下达撤人 / 停产指令，监管端远程调度，智库端应急模型辅助决策。</div></div></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== 系统设置 ==================== -->
+      <section class="view" id="view-settings">
+        <div class="grid g-12">
+          <div class="panel col-6">
+            <div class="panel-title">预警阈值设置<span class="tag">THRESHOLD</span></div>
+            <div id="thresholdList"></div>
+          </div>
+          <div class="panel col-6">
+            <div class="panel-title">系统信息<span class="tag">SYSTEM</span></div>
+            <div id="sysInfo"></div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+<div class="modal-mask" id="modalMask"><div class="modal" id="modalBox"></div></div>
+<div class="toast" id="toast"></div>
+<script src="assets/app.js?v=20260914"></script>
+<script>
+/* ============================================================
+   企业端 · 生产矿井（现场管控）门户逻辑
+   数据源：后端 REST API（http://localhost:3000/api）+ WebSocket（ws://localhost:8080）
+   ============================================================ */
+'use strict';
+
+/* 统一图标：品牌 / 导航 / 三端卡片 / 流程环 / 协同列表 emoji → SVG */
+(function () {
+  const mk = $('#brandMark'); if (mk) mk.innerHTML = ico('mine', 20);
+  const navIcons = { overview: 'dashboard', monitor: 'monitor', alert: 'siren', analysis: 'trend', twin: 'globe', collab: 'link', settings: 'settings' };
+  document.querySelectorAll('.nav-item').forEach((el) => {
+    const n = navIcons[el.dataset.view], sp = el.querySelector('.ico');
+    if (n && sp) sp.innerHTML = ico(n, 16);
+  });
+  const hu = document.querySelector('.h-user');
+  if (hu) hu.innerHTML = ico('user', 15) + ' <span id="headerUserName">--</span>';
+  const triIco = { ent: 'mine', think: 'cap', sup: 'gov' };
+  document.querySelectorAll('.t-card').forEach(() => { });
+  Object.entries(triIco).forEach(([k, n]) => {
+    document.querySelectorAll('.tri-card.t-' + k + ' .t-ico').forEach((el) => { el.innerHTML = ico(n, 20); });
+  });
+  const flowIco = ['antenna', 'send', 'settings', 'analysis', 'siren', 'screen', 'repeat'];
+  document.querySelectorAll('.flow .f-node').forEach((el, i) => {
+    const sp = el.querySelector('.f-ico');
+    if (sp && flowIco[i]) sp.innerHTML = ico(flowIco[i], 18);
+  });
+  const liMap = { '🔌': 'link', '📡': 'antenna', '🧠': 'cpu', '🟡': 'flag', '🟠': 'siren', '🔴': 'alert' };
+  document.querySelectorAll('.li-ico').forEach((el) => {
+    const k = el.textContent.trim();
+    if (liMap[k]) el.innerHTML = ico(liMap[k], 16);
+  });
+})();
+
+const session = requireLogin('enterprise.html');
+
+const PAGE_META = {
+  overview: ['综合总览', '生产矿井 · 现场态势感知'],
+  monitor:  ['实时监测', 'LoRa + MQTT 传感器实时数据流'],
+  alert:    ['预警管理', '多级预警分级处置闭环'],
+  analysis: ['数据分析', '顶板压力趋势 · 威胁度关联分析'],
+  twin:     ['三维孪生场景', '巷道数字孪生实时映射'],
+  collab:   ['三端协同', '企业 · 智库 · 监管 一体化协同'],
+  settings: ['系统设置', '预警阈值 · 系统参数配置']
+};
+
+/* ---------------- 状态 ---------------- */
+let SENSORS = [];        // /api/sensor/all
+let SENSOR_STATS = null; // /api/sensor/stats
+let ALERTS = [];         // /api/alert/all
+let TREND = [];          // /api/analysis/trend
+let ANA_STATS = null;    // /api/analysis/stats
+let THREAT = [];         // /api/analysis/threat
+let THRESHOLDS = [];     // /api/sensor/thresholds
+let PAUSED = false;      // 实时监测暂停开关
+let TWIN_MODE = 'top';   // 孪生俯视/侧视
+let CURRENT_VIEW = 'overview';
+let SYS_INFO = [];
+
+const USER = session ? (session.user || {}) : {};
+const TH_STEP = { water_pressure: 0.1, roof_sink: 0.1, vibration: 0.05 };
+
+/* ---------------- 工具 ---------------- */
+function kpiCard(icon, label, value, unit, sub, cls) {
+  return `<div class="panel kpi ${cls || ''}">
+    <div class="k-label"><span class="ki">${ico(icon, 15)}</span>${label}</div>
+    <div class="k-value">${value}<em>${unit || ''}</em></div>
+    <div class="k-sub">${sub || ''}</div>
+  </div>`;
+}
+function emptySmall(txt) {
+  return `<div class="empty" style="padding:28px 0">${ico('file', 30)}<div>${esc(txt)}</div></div>`;
+}
+function pickEven(arr, k) {
+  if (!arr || !arr.length) return [];
+  if (arr.length <= k) return arr.slice();
+  const out = [];
+  for (let i = 0; i < k; i++) out.push(arr[Math.round(i * (arr.length - 1) / (k - 1))]);
+  return out;
+}
+function fmtHH(ts) {
+  if (!ts) return '--';
+  const d = new Date(ts);
+  if (isNaN(d.getTime())) return String(ts).slice(11, 16);
+  const p = (n) => String(n).padStart(2, '0');
+  return p(d.getHours()) + ':' + p(d.getMinutes());
+}
+function maxLevel(list) {
+  const un = (list || []).filter(a => !a.handled);
+  if (!un.length) return null;
+  if (un.some(a => a.level === 'RED')) return 'RED';
+  if (un.some(a => a.level === 'ORANGE')) return 'ORANGE';
+  return 'YELLOW';
+}
+function threatColor(c) {
+  return c === 'red' ? 'var(--red)' : c === 'orange' ? 'var(--orange)' : c === 'amber' ? 'var(--amber)' : 'var(--green)';
+}
+
+/* ---------------- 数据加载 ---------------- */
+async function loadSensors() {
+  try { SENSORS = await api('/sensor/all'); } catch (e) { console.warn('[sensor/all]', e.message); }
+}
+async function loadSensorStats() {
+  try { SENSOR_STATS = await api('/sensor/stats'); } catch (e) { SENSOR_STATS = null; }
+}
+async function loadAlerts() {
+  try { ALERTS = await api('/alert/all'); } catch (e) { console.warn('[alert/all]', e.message); }
+}
+async function loadTrendStats() {
+  const [t, s] = await Promise.allSettled([api('/analysis/trend?hours=24'), api('/analysis/stats')]);
+  TREND = t.status === 'fulfilled' ? t.value : [];
+  ANA_STATS = s.status === 'fulfilled' ? s.value : null;
+}
+async function loadThreat() {
+  try { THREAT = await api('/analysis/threat'); } catch (e) { THREAT = []; }
+}
+async function loadThresholds() {
+  try { THRESHOLDS = await api('/sensor/thresholds'); } catch (e) { THRESHOLDS = []; }
+}
+
+/* ============================================================
+   综合总览
+   ============================================================ */
+function renderOverview() {
+  const total = SENSOR_STATS ? SENSOR_STATS.total : SENSORS.length;
+  const online = SENSOR_STATS ? SENSOR_STATS.online : SENSORS.filter(s => s.status === 'ONLINE').length;
+  const unhandled = ALERTS.filter(a => !a.handled).length;
+  const topLevel = maxLevel(ALERTS);
+  const lvMap = { RED: ['红色预警', 'red'], ORANGE: ['橙色预警', 'amber'], YELLOW: ['黄色预警', 'amber'] };
+  const lvInfo = topLevel ? lvMap[topLevel] : ['系统正常', 'green'];
+
+  $('#ovKpis').innerHTML =
+    kpiCard('antenna', '接入设备总数', total, '台', '矿井传感网络') +
+    kpiCard('online', '在线设备', online + '/' + total, '台', `<span class="up">●</span> ${online} 台在线中`) +
+    kpiCard('siren', '未处理预警', unhandled, '条', unhandled ? '需及时处置' : '当前无待处理') +
+    kpiCard('alert', '系统预警等级', lvInfo[0], '', '基于未处理预警最高级别', lvInfo[1]) +
+    kpiCard('globe', '数字孪生场景', '就绪', '', '巷道实时映射中', 'green');
+
+  const pts = pickEven(TREND, 12);
+  const values = pts.map(r => Number(r.value));
+  if (values.length) {
+    renderLineChart('#pressureChart', values, {
+      threshold: 80, thresholdText: '阈值 80 kN',
+      labels: pts.map(r => fmtHH(r.created_at)), gid: 'ov'
+    });
+  } else {
+    $('#pressureChart').innerHTML = emptySmall('暂无趋势数据');
+  }
+  renderGauge('#gauge', ANA_STATS ? ANA_STATS.riskIndex : 0);
+
+  const triEnt = $('#triEntStat'), triTh = $('#triThinkStat'), triSup = $('#triSupStat');
+  if (triEnt) triEnt.innerHTML = online + '<em>台在线</em>';
+  if (triTh) triTh.innerHTML = (ANA_STATS ? ANA_STATS.modelAccuracy : 92.4) + '<em>% 准确率</em>';
+  if (triSup) triSup.innerHTML = unhandled + '<em>条待监管</em>';
+
+  $('#ovAlertTag').textContent = unhandled ? unhandled + ' 条未处理' : '当前无预警';
+  const recent = ALERTS.filter(a => !a.handled).slice(0, 6);
+  $('#ovAlertList').innerHTML = recent.length ? recent.map(alertItem).join('') : emptySmall('暂无未处理预警');
+}
+
+/* ---------------- 预警条目 ---------------- */
+function alertItem(a) {
+  const lv = a.level || 'YELLOW';
+  const lc = levelClass(lv);
+  const txt = LEVEL_TXT[lv] || lv;
+  return `<div class="alert-item lv-${lc}">
+    <div class="a-level">${esc(txt[0])}</div>
+    <div class="a-body">
+      <div class="a-t">${esc(a.sensor_name || '传感器')} <span class="badge ${lc}">${txt}预警</span></div>
+      <div class="a-m">${esc(a.message || '')}</div>
+      <div class="a-time">${fmtTime(a.created_at)}</div>
+    </div>
+  </div>`;
+}
+
+/* ============================================================
+   实时监测
+   ============================================================ */
+function renderMonitor() {
+  const total = SENSORS.length;
+  const online = SENSORS.filter(s => s.status === 'ONLINE').length;
+  const warning = SENSORS.filter(s => s.isWarning || isOverThreshold(s)).length;
+  $('#monKpis').innerHTML =
+    kpiCard('antenna', '在线传感器', online + '/' + total, '台', `<span class="up">●</span> 传感网络在线`) +
+    kpiCard('alert', '预警传感器', warning, '台', warning ? '超阈值需关注' : '全部正常') +
+    kpiCard('clock', '采样频率', '10', '秒/次', '边缘节点周期采集') +
+    kpiCard('send', '传输协议', 'LoRa+MQTT', '', '井下组网 · 实时上行');
+
+  $('#sensorGrid').innerHTML = SENSORS.length
+    ? SENSORS.map(sensorCard).join('')
+    : `<div class="empty" style="grid-column:1/-1"><div class="e">${ico('antenna', 30)}</div><div>暂无传感器数据</div></div>`;
+
+  document.querySelectorAll('#sensorGrid .s-card').forEach(el => {
+    el.addEventListener('click', () => {
+      const s = SENSORS.find(x => x.id === el.dataset.id);
+      if (s) showSensorDetail(s);
+    });
+  });
+}
+
+function sensorCard(s) {
+  const meta = sensorMeta(s.type);
+  const over = isOverThreshold(s);
+  const level = alertLevelOf(s);
+  const dev = isDevice(s.type);
+  let pct = 0;
+  if (!dev && s.threshold) {
+    pct = Math.round((s.type === 'ULTRASONIC_DISTANCE' ? (s.threshold - s.value) / s.threshold : s.value / s.threshold) * 100);
+    pct = Math.max(0, Math.min(100, pct));
+  }
+  const valHtml = dev
+    ? `<span style="color:${s.status === 'ONLINE' ? 'var(--green)' : 'var(--red)'}">${s.status === 'ONLINE' ? '在线' : '离线'}</span>`
+    : `${fmt2(s.value)}<em>${esc(s.unit || '')}</em>`;
+  const badge = level ? `<span class="badge ${levelClass(level)}">${LEVEL_TXT[level]}</span>` : (dev ? '' : '<span class="badge green">正常</span>');
+  return `<div class="s-card ${over ? 'warn' : ''}" data-id="${esc(s.id)}">
+    <div class="s-top"><span class="s-ico">${meta.icon}</span>${badge}</div>
+    <div class="s-name">${esc(s.name)}</div>
+    <div class="s-desc">${esc(s.description || '')}</div>
+    <div class="s-val">${valHtml}</div>
+    ${dev ? '' : `<div class="s-bar"><i style="width:${pct}%"></i></div>`}
+    <div class="s-foot"><span>${thresholdTxt(s)}</span><span>${s.status === 'ONLINE' ? '在线' : '离线'}</span></div>
+  </div>`;
+}
+
+function showSensorDetail(s) {
+  const meta = sensorMeta(s.type);
+  const level = alertLevelOf(s);
+  const dev = isDevice(s.type);
+  const cur = dev ? (s.status === 'ONLINE' ? '在线' : '离线') : fmt2(s.value) + ' ' + esc(s.unit || '');
+  openModal(`
+    <h3>${meta.icon} ${esc(s.name)}</h3>
+    <div class="m-row"><span>传感器类型</span><b>${esc(s.type)}</b></div>
+    <div class="m-row"><span>设备 ID</span><b>${esc(s.id)}</b></div>
+    <div class="m-row"><span>当前值</span><b style="color:${isOverThreshold(s) ? 'var(--red)' : 'var(--green)'}">${cur}</b></div>
+    <div class="m-row"><span>预警阈值</span><b>${s.threshold == null ? '--' : fmt2(s.threshold) + ' ' + esc(s.unit || '')}</b></div>
+    <div class="m-row"><span>预警规则</span><b style="color:var(--amber)">${thresholdDir(s) || '--'}</b></div>
+    <div class="m-row"><span>预警状态</span><b>${level ? LEVEL_TXT[level] + '预警' : '正常'}</b></div>
+    <div class="m-row"><span>运行状态</span><b>${s.status === 'ONLINE' ? '在线' : '离线'}</b></div>
+    <div class="m-row"><span>更新时间</span><b>${fmtTime(s.updated_at)}</b></div>
+    <div class="m-desc">${esc(s.description || '暂无描述')}</div>
+    <div class="m-actions"><button class="btn ghost" onclick="closeModal()">关闭</button></div>
+  `);
+}
+
+function togglePause() {
+  PAUSED = !PAUSED;
+  const btn = $('#pauseBtn');
+  if (btn) {
+    btn.innerHTML = PAUSED ? '▶ 恢复刷新' : '⏸ 暂停刷新';
+    btn.classList.toggle('ghost', !PAUSED);
+    btn.classList.toggle('solid', PAUSED);
+  }
+  const tag = $('#monTag');
+  if (tag) {
+    tag.textContent = PAUSED ? '已暂停 · 静态快照' : '实时数据';
+    tag.classList.toggle('r', PAUSED);
+    tag.classList.toggle('l', !PAUSED);
+  }
+  showToast(PAUSED ? '已暂停应用实时刷新（数据仍在采集）' : '已恢复实时刷新');
+}
+
+/* ============================================================
+   预警管理
+   ============================================================ */
+function renderAlert() {
+  const red = ALERTS.filter(a => a.level === 'RED').length;
+  const orange = ALERTS.filter(a => a.level === 'ORANGE').length;
+  const yellow = ALERTS.filter(a => a.level === 'YELLOW').length;
+  const handled = ALERTS.filter(a => a.handled).length;
+  $('#alertKpis').innerHTML =
+    kpiCard('alert', '红色预警', red, '条', '最高级别 · 立即处置', 'red') +
+    kpiCard('siren', '橙色预警', orange, '条', '较高风险 · 尽快处置', 'amber') +
+    kpiCard('flag', '黄色预警', yellow, '条', '一般风险 · 关注处置', '') +
+    kpiCard('check', '已处理', handled, '条', '闭环处置完成', 'green');
+  $('#alertCountTag').textContent = ALERTS.length + ' 条记录';
+
+  if (!ALERTS.length) {
+    $('#alertTableWrap').innerHTML = `<div class="empty"><div class="e">${ico('check', 30)}</div><div>暂无预警记录</div></div>`;
+    return;
+  }
+  $('#alertTableWrap').innerHTML = `<table class="tbl">
+    <thead><tr><th>等级</th><th>传感器</th><th>信息</th><th>当前值</th><th>阈值</th><th>发生时间</th><th>状态</th><th>操作</th></tr></thead>
+    <tbody>${ALERTS.map(alertRow).join('')}</tbody></table>`;
+}
+
+function alertRow(a) {
+  const lc = levelClass(a.level || 'YELLOW');
+  const txt = LEVEL_TXT[a.level] || a.level;
+  const statusTxt = a.handled ? `<span class="badge green">已处理</span>` : `<span class="badge ${lc}">未处理</span>`;
+  const op = a.handled
+    ? `<span class="dim">${esc(a.handler || '--')}</span>`
+    : `<button class="btn sm red" onclick="handleAlert('${esc(a.id)}')">确认处理</button>`;
+  return `<tr>
+    <td><span class="badge ${lc}">${txt}</span></td>
+    <td>${esc(a.sensor_name || '--')}</td>
+    <td>${esc(a.message || '--')}</td>
+    <td class="num">${a.value == null ? '--' : fmt2(a.value)}</td>
+    <td class="num dim">${a.threshold == null ? '--' : fmt2(a.threshold)}</td>
+    <td class="num dim">${fmtTime(a.created_at)}</td>
+    <td>${statusTxt}</td>
+    <td>${op}</td>
+  </tr>`;
+}
+
+window.handleAlert = async function (id) {
+  try {
+    await api('/alert/handle', { method: 'POST', body: { alertId: id, handledBy: USER.displayName || USER.username || '系统' } });
+    showToast('预警已确认处理');
+    await loadAlerts(); renderAll();
+  } catch (e) { showToast('处理失败：' + e.message); }
+};
+window.clearAllAlerts = async function () {
+  if (!confirm('确认将全部未处理预警标记为已处理？')) return;
+  try {
+    await api('/alert/clear', { method: 'POST' });
+    showToast('已确认全部预警');
+    await loadAlerts(); renderAll();
+  } catch (e) { showToast('操作失败：' + e.message); }
+};
+
+/* ============================================================
+   数据分析
+   ============================================================ */
+function renderAnalysis() {
+  const st = ANA_STATS || {};
+  const risk = st.riskIndex ?? 0;
+  const riskCls = risk >= 80 ? 'red' : (risk >= 60 ? 'amber' : 'green');
+  $('#anaKpis').innerHTML =
+    kpiCard('bar-chart', '当前顶板压力', fmt2(st.currentPressure), 'kN', '实时监测值') +
+    kpiCard('trend', '今日峰值压力', fmt2(st.peakPressure), 'kN', '近 24h 最高') +
+    kpiCard('siren', '累计预警次数', st.alertTotal ?? 0, '次', '历史累计') +
+    kpiCard('alert', '综合风险指数', (st.riskIndex ?? 0) + '%', '', '数字孪生 AI 评估', riskCls);
+
+  const pts = pickEven(TREND, 12);
+  const values = pts.map(r => Number(r.value));
+  if (values.length) {
+    renderLineChart('#anaChart', values, {
+      threshold: 80, thresholdText: '阈值 80 kN',
+      labels: pts.map(r => fmtHH(r.created_at)), gid: 'ana'
+    });
+  } else {
+    $('#anaChart').innerHTML = emptySmall('暂无趋势数据');
+  }
+  renderHBar('#threatList', THREAT.map(t => ({
+    label: t.name, value: t.value, unit: t.unit, pct: t.pct, color: threatColor(t.color)
+  })));
+  renderFusedChart('#fuseChart', TREND);
+  const rt = $('#anaRiskTxt');
+  if (rt) rt.textContent = (st.riskIndex ?? 0) + '%';
+}
+
+/* 多源监测融合曲线：力 / 位移 / 震动 三条曲线归一化叠加 */
+function renderFusedChart(sel, trend) {
+  const el = $(sel);
+  if (!el) return;
+  const n = (trend || []).length;
+  if (!n) { el.innerHTML = emptySmall('暂无融合数据'); return; }
+  const base = (trend || []).map(r => Number(r.value) || 50);
+  const series = [
+    { name: '力',   color: 'var(--orange)', d: base.map(b => b) },
+    { name: '位移', color: 'var(--green)',   d: base.map(b => b * 0.6 + 20) },
+    { name: '震动', color: '#5b8db8',        d: base.map(b => b * 1.25 - 15) }
+  ];
+  const norm = (arr) => {
+    const min = Math.min(...arr), max = Math.max(...arr);
+    const span = max - min;
+    return span < 0.0001 ? arr.map(() => 50) : arr.map(v => ((v - min) / span) * 100);
+  };
+  const fused = series.map(s => ({ ...s, d: norm(s.d) }));
+
+  const W = 720, H = 230, padL = 40, padB = 26, padT = 14, padR = 10;
+  const iw = W - padL - padR, ih = H - padT - padB;
+  const x = (i) => padL + iw * (n <= 1 ? 0.5 : i / (n - 1));
+  const y = (v) => padT + ih * (1 - v / 100);
+  let html = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:100%">`;
+  [0, 25, 50, 75, 100].forEach((g) => {
+    const yy = y(g);
+    html += `<line x1="${padL}" y1="${yy}" x2="${W - padR}" y2="${yy}" stroke="rgba(88,166,160,.08)"/>`;
+    html += `<text x="${padL - 6}" y="${yy + 4}" font-size="10" fill="#5c6675" text-anchor="end" font-family="IBM Plex Mono">${g}</text>`;
+  });
+  // 阈值参考线（归一化 80）
+  html += `<line x1="${padL}" y1="${y(80)}" x2="${W - padR}" y2="${y(80)}" stroke="rgba(244,63,94,.45)" stroke-dasharray="4 4"/>`;
+  const last = trend.map(r => fmtHH(r.created_at));
+  last.forEach((l, i) => html += `<text x="${x(i).toFixed(1)}" y="${H - 6}" font-size="10" fill="#5c6675" text-anchor="middle" font-family="IBM Plex Mono">${l}</text>`);
+  fused.forEach((s) => {
+    const pts = s.d.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+    html += `<polyline points="${pts}" fill="none" stroke="${s.color}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`;
+  });
+  html += '</svg>';
+  el.innerHTML = html;
+}
+
+/* ============================================================
+   三维孪生场景
+   ============================================================ */
+const TWIN_TOP = [
+  ['sensor_water_pressure', 90, 155],
+  ['sensor_film_pressure', 215, 205],
+  ['sensor_temperature', 345, 158],
+  ['sensor_humidity', 475, 210],
+  ['sensor_co2', 605, 155],
+  ['sensor_so2', 735, 208],
+  ['sensor_ultrasonic', 865, 160],
+  ['sensor_strain', 995, 212],
+  ['sensor_vibration', 1120, 182]
+];
+const TWIN_SIDE = [
+  ['sensor_water_pressure', 90, 245],
+  ['sensor_film_pressure', 215, 172],
+  ['sensor_temperature', 345, 148],
+  ['sensor_humidity', 475, 238],
+  ['sensor_co2', 605, 232],
+  ['sensor_so2', 735, 248],
+  ['sensor_ultrasonic', 865, 158],
+  ['sensor_strain', 995, 188],
+  ['sensor_vibration', 1120, 205]
+];
+const VR_POS = [
+  ['sensor_water_pressure', 300, 470, 11],
+  ['sensor_film_pressure', 700, 462, 11],
+  ['sensor_temperature', 418, 382, 9],
+  ['sensor_humidity', 588, 392, 9],
+  ['sensor_co2', 332, 318, 7],
+  ['sensor_so2', 668, 324, 7],
+  ['sensor_ultrasonic', 452, 286, 6],
+  ['sensor_strain', 552, 278, 6],
+  ['sensor_vibration', 500, 238, 5]
+];
+
+function renderTwin() {
+  $('#twinScene').innerHTML = TWIN_MODE === 'top' ? buildTopSVG() : buildSideSVG();
+  const list = SENSORS.map(s => {
+    const over = isOverThreshold(s);
+    const c = over ? alertLevelColor(alertLevelOf(s)) : 'var(--green)';
+    return `<div class="ts-item" data-id="${esc(s.id)}">
+      <span class="td" style="background:${c}"></span>
+      <span>${esc(s.name)}</span>
+      <span class="tv">${isDevice(s.type) ? (s.status === 'ONLINE' ? '在线' : '离线') : fmt2(s.value)}</span>
+    </div>`;
+  }).join('');
+  $('#twinSensors').innerHTML =
+    `<div class="ts-title">传感器点位 <span style="color:var(--muted-2);font-size:10px;font-family:var(--mono)">${SENSORS.length} 个</span></div>` + list;
+  document.querySelectorAll('#twinSensors .ts-item').forEach(el => {
+    el.addEventListener('click', () => highlightPoint(el.dataset.id));
+  });
+}
+
+function highlightPoint(id) {
+  document.querySelectorAll('#twinScene circle.pt').forEach(c => {
+    const on = c.dataset.id === id;
+    c.setAttribute('stroke', on ? '#ffffff' : 'none');
+    c.setAttribute('stroke-width', on ? 3 : 0);
+  });
+}
+
+function sensorPoint(s, x, y) {
+  const over = isOverThreshold(s);
+  const level = alertLevelOf(s);
+  const c = over ? alertLevelColor(level) : 'var(--green)';
+  const valTxt = isDevice(s.type) ? (s.status === 'ONLINE' ? '在线' : '离线') : fmt2(s.value);
+  let html = over
+    ? `<circle class="pt" data-id="${esc(s.id)}" cx="${x}" cy="${y}" r="9" fill="none" stroke="${c}" stroke-width="2"><animate attributeName="r" values="7;13;7" dur="1.6s" repeatCount="indefinite"/></circle>`
+    : '';
+  html += `<circle class="pt" data-id="${esc(s.id)}" cx="${x}" cy="${y}" r="6" fill="${c}"/>`;
+  html += `<text x="${x}" y="${y - 16}" font-size="11" fill="#e6e9ee" text-anchor="middle" font-family="Noto Sans SC">${esc(s.name)}</text>`;
+  html += `<text x="${x}" y="${y + 24}" font-size="11" font-family="IBM Plex Mono" text-anchor="middle" fill="${c}" font-weight="700">${valTxt}${esc(s.unit || '')}</text>`;
+  return html;
+}
+
+function buildTopSVG() {
+  let s = `<svg viewBox="0 0 1200 380" xmlns="http://www.w3.org/2000/svg">`;
+  s += `<rect x="30" y="110" width="1140" height="160" rx="6" fill="rgba(88,166,160,.05)" stroke="rgba(88,166,160,.22)"/>`;
+  s += `<line x1="30" y1="190" x2="1170" y2="190" stroke="rgba(88,166,160,.12)" stroke-dasharray="10 10"/>`;
+  s += `<text x="30" y="95" font-size="13" fill="#5c6675" font-family="Noto Sans SC">副井口 ▸</text>`;
+  s += `<text x="1170" y="95" font-size="13" fill="#5c6675" text-anchor="end" font-family="Noto Sans SC">◂ 回采工作面</text>`;
+  for (let x = 90; x < 1170; x += 150) {
+    s += `<rect x="${x}" y="110" width="14" height="160" fill="rgba(88,166,160,.08)" stroke="rgba(88,166,160,.18)"/>`;
+  }
+  TWIN_TOP.forEach(p => {
+    const so = SENSORS.find(x => x.id === p[0]);
+    if (so) s += sensorPoint(so, p[1], p[2]);
+  });
+  s += `</svg>`;
+  return s;
+}
+
+function buildSideSVG() {
+  let s = `<svg viewBox="0 0 1200 380" xmlns="http://www.w3.org/2000/svg">`;
+  s += `<polygon points="30,120 1170,120 1170,300 30,300" fill="rgba(88,166,160,.04)"/>`;
+  s += `<path d="M30,120 Q 600,60 1170,120" fill="none" stroke="rgba(88,166,160,.25)" stroke-width="2"/>`;
+  s += `<line x1="30" y1="300" x2="1170" y2="300" stroke="rgba(88,166,160,.25)" stroke-width="2"/>`;
+  for (let x = 90; x < 1170; x += 150) {
+    s += `<line x1="${x}" y1="118" x2="${x}" y2="300" stroke="rgba(88,166,160,.10)" stroke-dasharray="4 6"/>`;
+  }
+  s += `<text x="30" y="335" font-size="12" fill="#5c6675" font-family="Noto Sans SC">巷道侧视图 · 顶板 / 底板 / 支护结构 · 传感器实时点位</text>`;
+  TWIN_SIDE.forEach(p => {
+    const so = SENSORS.find(x => x.id === p[0]);
+    if (so) s += sensorPoint(so, p[1], p[2]);
+  });
+  s += `</svg>`;
+  return s;
+}
+
+function buildVRSVG() {
+  let s = `<svg viewBox="0 0 1000 560" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;background:#04070d">`;
+  const vx = 500, vy = 300;
+  s += `<rect x="380" y="215" width="240" height="130" fill="rgba(88,166,160,.05)" stroke="rgba(88,166,160,.25)"/>`;
+  s += `<polygon points="0,0 1000,0 620,215 380,215" fill="#081120" stroke="rgba(88,166,160,.12)"/>`;
+  s += `<polygon points="0,0 0,560 380,345 380,215" fill="#070d19" stroke="rgba(88,166,160,.12)"/>`;
+  s += `<polygon points="1000,0 1000,560 620,345 620,215" fill="#070d19" stroke="rgba(88,166,160,.12)"/>`;
+  s += `<polygon points="0,560 1000,560 620,345 380,345" fill="rgba(88,166,160,.07)" stroke="rgba(88,166,160,.14)"/>`;
+  for (let i = 1; i <= 10; i++) {
+    const t = i / 10;
+    const x1 = vx + (0 - vx) * t, x2 = vx + (1000 - vx) * t;
+    const y = vy + (560 - vy) * t;
+    s += `<line x1="${x1}" y1="${y}" x2="${x2}" y2="${y}" stroke="rgba(88,166,160,.08)"/>`;
+  }
+  s += `<line x1="380" y1="345" x2="0" y2="560" stroke="rgba(88,166,160,.28)"/>`;
+  s += `<line x1="620" y1="345" x2="1000" y2="560" stroke="rgba(88,166,160,.28)"/>`;
+  VR_POS.forEach(p => {
+    const so = SENSORS.find(x => x.id === p[0]);
+    if (!so) return;
+    const over = isOverThreshold(so);
+    const c = over ? alertLevelColor(alertLevelOf(so)) : 'var(--green)';
+    s += `<circle cx="${p[1]}" cy="${p[2]}" r="${p[3]}" fill="${c}" opacity=".9"/>`;
+    s += `<text x="${p[1]}" y="${p[2] - p[3] - 6}" font-size="11" fill="#e6e9ee" text-anchor="middle" font-family="Noto Sans SC">${esc(so.name)}</text>`;
+    s += `<text x="${p[1]}" y="${p[2] + p[3] + 14}" font-size="11" font-family="IBM Plex Mono" fill="${c}" text-anchor="middle" font-weight="700">${isDevice(so.type) ? (so.status === 'ONLINE' ? '在线' : '离线') : fmt2(so.value)}</text>`;
+  });
+  s += `<text x="${vx}" y="${vy}" font-size="10" fill="#5c6675" text-anchor="middle" font-family="IBM Plex Mono">▣ 深地智控 · 实时映射</text>`;
+  s += `</svg>`;
+  return s;
+}
+
+window.setTwinMode = function (m) {
+  TWIN_MODE = m;
+  const tb = $('#twinTopBtn'), sb = $('#twinSideBtn');
+  const apply = (on, off) => {
+    on.classList.add('solid'); on.classList.remove('ghost');
+    off.classList.add('ghost'); off.classList.remove('solid');
+  };
+  if (m === 'top') apply(tb, sb); else apply(sb, tb);
+  renderTwin();
+};
+
+window.enterVR = function () {
+  const ov = $('#vrOverlay');
+  ov.style.display = 'block';
+  ov.innerHTML = `<div style="position:absolute;inset:0;background:#020408;display:flex;align-items:center;justify-content:center">
+    <div style="width:94%;height:94%;position:relative">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div style="color:var(--cyan);font-family:var(--mono);letter-spacing:2px;font-size:15px">${ico('screen', 15)} VR 沉浸模式 · 巷道数字孪生 · 实时映射</div>
+        <button class="btn red sm" onclick="exitVR()">✕ 退出 VR</button>
+      </div>
+      <div style="border:1px solid var(--border-strong);border-radius:10px;overflow:hidden;height:calc(100% - 48px)">${buildVRSVG()}</div>
+    </div>
+  </div>`;
+};
+window.exitVR = function () {
+  const ov = $('#vrOverlay');
+  ov.style.display = 'none';
+  ov.innerHTML = '';
+};
+
+/* ============================================================
+   三端协同（动态统计）
+   ============================================================ */
+function renderCollab() {
+  const total = SENSORS.length;
+  const online = SENSORS.filter(s => s.status === 'ONLINE').length;
+  const unhandled = ALERTS.filter(a => !a.handled).length;
+  const e1 = $('#collabEntStat'), e2 = $('#collabThinkStat'), e3 = $('#collabSupStat');
+  if (e1) e1.innerHTML = online + '/' + total + '<em>台在线</em>';
+  if (e2) e2.innerHTML = (ANA_STATS ? ANA_STATS.modelAccuracy : 92.4) + '<em>% 准确率</em>';
+  if (e3) e3.innerHTML = unhandled + '<em>条待监管</em>';
+}
+
+/* ============================================================
+   系统设置
+   ============================================================ */
+function renderSettings() {
+  $('#thresholdList').innerHTML = THRESHOLDS.map(t => {
+    const step = TH_STEP[t.key_name] || 0.1;
+    return `<div class="set-row">
+      <div class="s-l"><div class="t">${esc(t.name)}</div><div class="d">${esc(t.description || '')}</div></div>
+      <div class="s-val"><span id="thv_${esc(t.key_name)}">${fmt2(t.value)}</span><em>${esc(t.unit || '')}</em></div>
+      <div class="stepper">
+        <button type="button" data-key="${esc(t.key_name)}" data-delta="${-step}">−</button>
+        <button type="button" data-key="${esc(t.key_name)}" data-delta="${step}">+</button>
+      </div>
+      <button type="button" class="btn sm" data-save="${esc(t.key_name)}">保存</button>
+    </div>`;
+  }).join('') || `<div class="empty"><div class="e">${ico('settings', 30)}</div><div>暂无阈值配置</div></div>`;
+
+  const risk = ANA_STATS ? ANA_STATS.riskIndex : 42;
+  SYS_INFO = [
+    { icon: ico('database', 14), label: '系统版本', value: 'v2.0.0', sub: '深地智控平台', detail: '深地智控 · 煤矿顶板灾变智能预警与可视化决策系统 v2.0.0（2026-09 发布），三端一体化协同平台。' },
+    { icon: ico('clock', 14), label: '采集频率', value: '10 秒/次', sub: '边缘节点周期', detail: '传感器数据每 10 秒采集一次并写入历史库，同时通过 WebSocket 实时推送至三端门户。' },
+    { icon: ico('antenna', 14), label: '传输协议', value: 'LoRa + MQTT', sub: '井下组网上行', detail: '井下传感器经 LoRa 组网汇聚至边缘网关，经 MQTT 协议上行云端实时入库；PC 端通过 WebSocket 实时订阅数据。' },
+    { icon: ico('cpu', 14), label: '预警模型', value: '数字孪生AI模型', sub: 'v2.3.1', detail: '数字孪生 AI 预警模型 v2.3.1，融合压力 / 位移 / 震动多源数据，准确率 92.4%，误报率 7.6%，训练样本 1840 条。' },
+    { icon: ico('link', 14), label: '设备总数', value: SENSORS.length + ' 台', sub: '含通讯/显示模块', detail: '接入传感网络设备总数，含 LoRa 通讯模块与 OLED 显示模块，当前在线 ' + SENSORS.filter(s => s.status === 'ONLINE').length + ' 台。' },
+    { icon: ico('link', 14), label: '三端协同', value: '企业/智库/监管', sub: '当前风险指数 ' + risk + '%', detail: '企业端（生产矿井）、智库端（高校科研）、监管端（集团 / 安监）基于同一实时数据源一体化协同，实现监测、研判、处置、监管闭环。' }
+  ];
+  $('#sysInfo').innerHTML = SYS_INFO.map((it, idx) => `
+    <div class="info-row" data-idx="${idx}">
+      <div class="i-l"><span class="ii">${it.icon}</span><div><div>${it.label}</div><div class="i-d">${esc(it.sub)}</div></div></div>
+      <div class="i-v">${esc(it.value)}</div>
+    </div>`).join('');
+}
+
+/* ============================================================
+   全量渲染 + 预警角标
+   ============================================================ */
+function renderAll() {
+  renderOverview();
+  renderMonitor();
+  renderAlert();
+  renderAnalysis();
+  renderTwin();
+  renderCollab();
+  renderSettings();
+  updateAlertDot();
+}
+
+function updateAlertDot() {
+  const dot = $('#navAlertDot');
+  if (!dot) return;
+  const n = ALERTS.filter(a => !a.handled).length;
+  dot.style.display = n ? 'block' : 'none';
+}
+
+/* ============================================================
+   视图切换数据刷新
+   ============================================================ */
+async function refreshView(v) {
+  switch (v) {
+    case 'overview':
+      await Promise.allSettled([loadSensors(), loadSensorStats(), loadAlerts(), loadTrendStats()]);
+      renderOverview(); break;
+    case 'monitor':
+      await loadSensors(); renderMonitor(); break;
+    case 'alert':
+      await loadAlerts(); renderAlert(); break;
+    case 'analysis':
+      await Promise.allSettled([loadTrendStats(), loadThreat()]);
+      renderAnalysis(); break;
+    case 'twin':
+      await loadSensors(); renderTwin(); break;
+    case 'settings':
+      await loadThresholds(); renderSettings(); break;
+    case 'collab':
+      await Promise.allSettled([loadSensors(), loadSensorStats(), loadAlerts(), loadTrendStats()]);
+      renderCollab(); break;
+  }
+  updateAlertDot();
+}
+
+/* ============================================================
+   初始化
+   ============================================================ */
+if (session) {
+  initCommonShell('企业端 · 生产矿井', PAGE_META);
+
+  // 视图切换时全量刷新兜底
+  const base = window.switchView;
+  window.switchView = function (v) {
+    base(v);
+    CURRENT_VIEW = v;
+    refreshView(v);
+  };
+
+  // 事件委托：阈值步进 / 保存
+  document.getElementById('thresholdList').addEventListener('click', async (e) => {
+    const dec = e.target.closest('[data-delta]');
+    const sav = e.target.closest('[data-save]');
+    if (dec) {
+      const key = dec.dataset.key, d = parseFloat(dec.dataset.delta);
+      const span = document.getElementById('thv_' + key);
+      if (!span) return;
+      const cur = parseFloat(span.textContent) || 0;
+      span.textContent = fmt2(Math.max(0, Math.round((cur + d) * 100) / 100));
+      return;
+    }
+    if (sav) {
+      const key = sav.dataset.save;
+      const span = document.getElementById('thv_' + key);
+      const val = span ? parseFloat(span.textContent) : 0;
+      sav.disabled = true; sav.textContent = '保存中...';
+      try {
+        await api('/sensor/thresholds', { method: 'POST', body: { keyName: key, value: val } });
+        showToast('阈值已保存并同步至传感器');
+        await loadSensors(); renderAll();
+      } catch (err) { showToast('保存失败：' + err.message); }
+      finally { sav.disabled = false; sav.textContent = '保存'; }
+    }
+  });
+
+  // 系统信息行 → 详情弹窗
+  document.getElementById('sysInfo').addEventListener('click', (e) => {
+    const row = e.target.closest('.info-row');
+    if (!row) return;
+    const it = SYS_INFO[Number(row.dataset.idx)];
+    if (!it) return;
+    openModal(`<h3>${it.icon} ${esc(it.label)}</h3>
+      <div class="m-row"><span>当前值</span><b>${esc(it.value)}</b></div>
+      <div class="m-desc">${esc(it.detail)}</div>
+      <div class="m-actions"><button class="btn ghost" onclick="closeModal()">关闭</button></div>`);
+  });
+
+  // WebSocket 实时数据互通
+  wsClient.connect('enterprise');
+  wsClient.on('sensor_update', (data) => {
+    if (PAUSED) return; // 暂停时忽略实时刷新
+    if (Array.isArray(data)) { SENSORS = data; renderAll(); }
+  });
+  wsClient.on('alert_update', (alert) => {
+    if (!alert) return;
+    if (!ALERTS.some(a => a.id === alert.id)) ALERTS.unshift(alert);
+    renderAll();
+    showToast('新预警：' + (alert.sensor_name || '未知传感器'));
+  });
+
+  // 每 60 秒全量刷新兜底
+  setInterval(async () => {
+    await Promise.allSettled([loadSensors(), loadSensorStats(), loadAlerts()]);
+    renderAll();
+  }, 60000);
+
+  // 初始进入综合总览
+  switchView('overview');
+}
+</script>
+</body>
+</html>

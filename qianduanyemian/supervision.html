@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>监管端 · 深地智控</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="app-bg"></div>
+<div id="app" style="display:flex">
+  <aside class="sidebar">
+    <div class="brand"><div class="mark">🏛️</div><div><h1>深地智控 · 监管端</h1><p>SUPERVISION · REMOTE CENTER</p></div></div>
+    <nav class="nav">
+      <div class="nav-sec">监管中心</div>
+      <div class="nav-item" data-view="overview"><span class="ico">🗺️</span>监控总览</div>
+      <div class="nav-item" data-view="alert"><span class="ico">🚨</span>监管预警<span class="dot" id="alertNavDot" style="display:none"></span></div>
+      <div class="nav-sec">态势大屏</div>
+      <div class="nav-item" data-link="bigscreen.html?from=supervision.html"><span class="ico">🖥️</span>综合态势大屏</div>
+      <div class="nav-sec">应急与报告</div>
+      <div class="nav-item" data-view="dispatch"><span class="ico">📡</span>应急调度</div>
+      <div class="nav-item" data-view="report"><span class="ico">📋</span>监管报告</div>
+    </nav>
+    <div class="side-user">
+      <div class="u"><div class="ava">监</div><div><div class="un" id="sideUserName">--</div><div class="ur" id="sideUserRole">监管端 · 集团/安监部门</div></div></div>
+      <button class="out" id="logoutBtn">退出登录</button>
+    </div>
+  </aside>
+  <div style="flex:1;display:flex;flex-direction:column;min-width:0">
+    <header class="header">
+      <div class="page-title"><h2 id="pageTitle">--</h2><p id="pageSub">--</p></div>
+      <div class="h-right">
+        <div class="h-chip"><span class="led gray" id="connLed"></span><span id="connText">连接中...</span></div>
+        <div class="h-sep"></div><div class="h-clock" id="clock">--:--:--</div>
+        <div class="h-sep"></div><div class="h-user">👤 <span id="headerUserName">--</span></div>
+      </div>
+    </header>
+    <main class="main" id="main">
+
+      <!-- ============ 监控总览 ============ -->
+      <section class="view" id="view-overview">
+        <div class="grid g-kpi">
+          <div class="panel kpi cyan"><span class="k-label"><span class="ki">🏔️</span>监管矿井数</span><span class="k-value" id="ovMineCount">--</span><span class="k-sub">接入矿区 · 远程集中管控</span></div>
+          <div class="panel kpi green"><span class="k-label"><span class="ki">📡</span>接入传感器</span><span class="k-value" id="ovSensorTotal">--</span><span class="k-sub">在线监测终端 · 实时采集</span></div>
+          <div class="panel kpi"><span class="k-label"><span class="ki">🚨</span>未处理预警</span><span class="k-value" id="ovUnhandled">--</span><span class="k-sub">待处置预警 · 分级响应</span></div>
+          <div class="panel kpi amber"><span class="k-label"><span class="ki">📡</span>进行中调度</span><span class="k-value" id="ovActiveDispatch">--</span><span class="k-sub">应急指令流转中</span></div>
+          <div class="panel kpi red"><span class="k-label"><span class="ki">🔴</span>红色预警</span><span class="k-value" id="ovRedAlert">--</span><span class="k-sub">最高等级威胁 · 立即响应</span></div>
+        </div>
+
+        <div class="grid g-12" style="margin-top:16px">
+          <div class="col-4 panel">
+            <div class="panel-title">预警等级分布 <span class="tag">ALERT STAT</span></div>
+            <div id="alertDist"></div>
+          </div>
+          <div class="col-8 panel">
+            <div class="panel-title">矿井拓扑 · 传感器统计环 <span class="tag">TOPOLOGY</span></div>
+            <div id="mineSvg" style="height:300px"></div>
+          </div>
+        </div>
+
+        <div class="grid" style="margin-top:16px">
+          <div class="panel">
+            <div class="panel-title">监管矿井列表 <span class="tag" id="mineCountTag">0 座矿井</span></div>
+            <div id="mineList" class="grid g-2"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 监管预警 ============ -->
+      <section class="view" id="view-alert">
+        <div class="grid g-4">
+          <div class="panel kpi red"><span class="k-label"><span class="ki">🔴</span>红色预警</span><span class="k-value" id="alRed">--</span><span class="k-sub">历史累计 · 最高威胁</span></div>
+          <div class="panel kpi"><span class="k-label"><span class="ki">🟠</span>橙色预警</span><span class="k-value" id="alOrange">--</span><span class="k-sub">历史累计 · 高威胁</span></div>
+          <div class="panel kpi amber"><span class="k-label"><span class="ki">🟡</span>黄色预警</span><span class="k-value" id="alYellow">--</span><span class="k-sub">历史累计 · 一般威胁</span></div>
+          <div class="panel kpi red"><span class="k-label"><span class="ki">🚨</span>未处理总数</span><span class="k-value" id="alUnhandled">--</span><span class="k-sub">当前待处置 · 实时口径</span></div>
+        </div>
+
+        <div class="grid g-12" style="margin-top:16px">
+          <div class="col-8 panel">
+            <div class="panel-title">全量预警 <span class="tag" id="alertTotalTag">0 条</span><span class="tag r" id="alertUnhandledTag">0 未处理</span><button class="btn sm red" onclick="clearAllAlerts()">✓ 确认全部</button></div>
+            <div id="alertBody">
+              <table class="tbl">
+                <thead><tr><th>等级</th><th>传感器</th><th>预警信息</th><th>当前值</th><th>阈值</th><th>时间</th><th>矿井</th><th>状态</th><th>操作</th></tr></thead>
+                <tbody id="alertTbody"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="col-4 panel">
+            <div class="panel-title">顶板压力趋势 <span class="tag">监管态势参考 · 24H</span></div>
+            <div id="pressureTrend" style="height:230px"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 应急调度 ============ -->
+      <section class="view" id="view-dispatch">
+        <div class="grid g-4">
+          <div class="panel kpi cyan"><span class="k-label"><span class="ki">📋</span>调度指令总数</span><span class="k-value" id="dpTotal">--</span><span class="k-sub">历史累计指令</span></div>
+          <div class="panel kpi amber"><span class="k-label"><span class="ki">⏳</span>待响应</span><span class="k-value" id="dpPending">--</span><span class="k-sub">PENDING · 等待受理</span></div>
+          <div class="panel kpi"><span class="k-label"><span class="ki">🔄</span>进行中</span><span class="k-value" id="dpInProgress">--</span><span class="k-sub">IN_PROGRESS · 处置中</span></div>
+          <div class="panel kpi green"><span class="k-label"><span class="ki">✅</span>已完成</span><span class="k-value" id="dpDone">--</span><span class="k-sub">DONE · 闭环完成</span></div>
+        </div>
+
+        <div class="grid" style="margin-top:16px">
+          <div class="panel">
+            <div class="panel-title">调度指令记录 <span class="tag" id="dpCountTag">0 条</span><button class="btn solid sm" onclick="newDispatch()">＋ 新建调度指令</button></div>
+            <div id="dispatchList"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 监管报告 ============ -->
+      <section class="view" id="view-report">
+        <div class="grid g-3">
+          <div class="panel">
+            <div class="panel-title">矿井安全态势 <span class="tag l">SAFETY</span></div>
+            <div style="font-family:var(--mono);font-size:30px;font-weight:700;color:var(--green)" id="rsSafeVal">--</div>
+            <div style="font-size:11.5px;color:var(--muted);margin:4px 0 10px" id="rsSafeSub">--</div>
+            <div class="bar green"><i id="rsSafeBarI" style="width:0%"></i></div>
+          </div>
+          <div class="panel">
+            <div class="panel-title">预警处置率 <span class="tag l">HANDLE RATE</span></div>
+            <div style="font-family:var(--mono);font-size:30px;font-weight:700;color:var(--cyan)" id="rsRateVal">--</div>
+            <div style="font-size:11.5px;color:var(--muted);margin:4px 0 10px" id="rsRateSub">--</div>
+            <div class="bar cyan"><i id="rsRateBarI" style="width:0%"></i></div>
+          </div>
+          <div class="panel">
+            <div class="panel-title">调度响应时效 <span class="tag l">DISPATCH</span></div>
+            <div style="font-family:var(--mono);font-size:30px;font-weight:700;color:var(--amber)" id="rsRespVal">--</div>
+            <div style="font-size:11.5px;color:var(--muted);margin:4px 0 10px" id="rsRespSub">--</div>
+            <div class="bar amber"><i id="rsRespBarI" style="width:0%"></i></div>
+          </div>
+        </div>
+
+        <div class="grid g-12" style="margin-top:16px">
+          <div class="col-8 panel">
+            <div class="panel-title">分析报告 · 三端数据互通 <span class="tag">THINKTANK SYNC</span><button class="btn sm" onclick="exportCSV()">⬇ 导出监管快照 CSV</button><button class="btn solid sm" onclick="genReport()">📄 生成监管报告</button></div>
+            <div id="reportList"></div>
+          </div>
+          <div class="col-4 panel">
+            <div class="panel-title">调度记录汇总 <span class="tag">DISPATCH SUMMARY</span></div>
+            <div id="dispatchSummary"></div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+<div class="modal-mask" id="modalMask"><div class="modal" id="modalBox"></div></div>
+<div class="toast" id="toast"></div>
+<script src="assets/app.js?v=20260914"></script>
+<script>
+/* 统一图标：静态 emoji → SVG（与双端共享图标库一致，工业描边风格） */
+(function () {
+  var EMOJI_MAP = {
+    '🎓':'cap', '🗄':'database', '🗃':'database', '📈':'trend', '📉':'trend',
+    '🧠':'cpu', '📤':'send', '📄':'file', '📝':'file', '📦':'database',
+    '📡':'antenna', '🧩':'layers', '🟢':'online', '🏛':'gov', '🗺':'globe',
+    '🚨':'siren', '📋':'list', '👤':'user', '🏔':'mine', '⛏':'pick',
+    '🔴':'alert', '🟠':'siren', '🟡':'flag', '⏳':'clock', '🔄':'repeat',
+    '✅':'check', '⚙':'settings', '🛡':'shield', '🎯':'gauge', '🔔':'bell',
+    '🔌':'link', '🤝':'link', '⏱':'clock', '⚡':'zap', '🧪':'database',
+    '📚':'database', '🏷':'layers', '🧭':'activity', '📊':'bar-chart', '⬇':'download'
+  };
+  function sizeOf(el) {
+    var c = el.className || '';
+    if (c.indexOf('mark') >= 0) return 20;
+    if (c.indexOf('ico') >= 0) return 16;
+    if (c.indexOf('ii') >= 0) return 15;
+    if (c.indexOf('ki') >= 0) return 14;
+    if (c.indexOf('e') >= 0) return 30;
+    return 14;
+  }
+  document.querySelectorAll('.mark,.ico,.ki,.ii,.dc-ico,.li-ico,.e,button,[style*="font-size"]').forEach(function (el) {
+    if (el.querySelector('svg')) return;
+    var t = el.textContent.replace(/\uFE0F/g, '').trim();
+    if (!t) return;
+    var k = Object.keys(EMOJI_MAP).find(function (x) { return t === x || t.indexOf(x + ' ') === 0; });
+    if (!k) return;
+    var icon = ico(EMOJI_MAP[k], sizeOf(el));
+    el.innerHTML = t === k ? icon : icon + '<span style="margin-left:6px">' + t.slice(k.length).trim() + '</span>';
+  });
+  var hu = document.querySelector('.h-user');
+  if (hu) hu.innerHTML = ico('user', 15) + ' <span id="headerUserName">--</span>';
+})();
+</script>
+<script>
+'use strict';
+/* ============================================================
+   监管端 · 集团/安监部门 远程管理中心
+   数据源：后端 REST API + WebSocket 实时通道（全部真实数据）
+   ============================================================ */
+
+const PAGE_META = {
+  overview: ['监控总览', '多矿井远程集中监控 · 实时态势'],
+  alert: ['监管预警', '跨矿井预警态势 · 分级处置'],
+  dispatch: ['应急调度', '远程协同调度指令 · 闭环管理'],
+  report: ['监管报告', '安全生产监管态势 · 分析报告']
+};
+
+const STATUS_META = { PENDING: ['待响应', 'amber'], IN_PROGRESS: ['进行中', 'cyan'], DONE: ['已完成', 'green'] };
+const NEXT_STATUS = { PENDING: 'IN_PROGRESS', IN_PROGRESS: 'DONE', DONE: null };
+
+const state = { overview: null, mines: [], alerts: [], unhandledCount: 0, dispatches: [], reports: [], trend: [], sensors: [] };
+
+/* ---------------- 小工具 ---------------- */
+function curName() {
+  const s = getSession();
+  return (s && s.user && (s.user.displayName || s.user.username)) || '监管调度员';
+}
+function trunc(s, n) { s = String(s == null ? '' : s); return s.length > n ? s.slice(0, n) + '…' : s; }
+function dateStamp() {
+  const d = new Date(), p = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}`;
+}
+function setVal(sel, v) { const el = $(sel); if (el) el.textContent = v; }
+function mineName(id) {
+  const m = (state.mines || []).find((x) => String(x.id) === String(id));
+  return m ? m.name : (id ? '矿井#' + id : '--');
+}
+function toastErr(e) { showToast(e && e.message ? e.message : '操作失败'); }
+
+/* ============================================================
+   view-overview · 多矿井总览
+   ============================================================ */
+async function loadOverview() {
+  const [ov, mines] = await Promise.all([api('/supervision/overview'), api('/supervision/mines')]);
+  renderOverview(ov, mines);
+}
+
+function renderOverview(ov, mines) {
+  state.overview = ov;
+  state.mines = mines || [];
+  const as = ov.alertStat || { RED: 0, ORANGE: 0, YELLOW: 0 };
+  setVal('#ovMineCount', ov.mineCount);
+  setVal('#ovSensorTotal', ov.sensorTotal);
+  setVal('#ovUnhandled', ov.unhandledAlert);
+  setVal('#ovActiveDispatch', ov.activeDispatch);
+  setVal('#ovRedAlert', as.RED);
+  const uh = $('#ovUnhandled'); if (uh) uh.classList.toggle('red', ov.unhandledAlert > 0);
+  const rk = $('#ovRedAlert'); if (rk) rk.classList.toggle('red', as.RED > 0);
+  const total = as.RED + as.ORANGE + as.YELLOW;
+  renderHBar('#alertDist', [
+    { label: '红色预警', value: as.RED, pct: total ? Math.round(as.RED / total * 100) : 0, color: 'var(--red)', unit: ' 条' },
+    { label: '橙色预警', value: as.ORANGE, pct: total ? Math.round(as.ORANGE / total * 100) : 0, color: 'var(--orange)', unit: ' 条' },
+    { label: '黄色预警', value: as.YELLOW, pct: total ? Math.round(as.YELLOW / total * 100) : 0, color: 'var(--amber)', unit: ' 条' }
+  ]);
+  renderMines(state.mines);
+  renderTopology(state.mines);
+  renderReportSummary();
+  const dot = $('#alertNavDot'); if (dot) dot.style.display = ov.unhandledAlert > 0 ? '' : 'none';
+}
+
+function renderMines(mines) {
+  const el = $('#mineList'); if (!el) return;
+  const tag = $('#mineCountTag'); if (tag) tag.textContent = `${mines.length} 座矿井`;
+  if (!mines.length) {
+    el.innerHTML = '<div class="empty" style="grid-column:1/-1"><div class="e">' + ico('globe', 30) + '</div><div>暂无矿井接入</div></div>';
+    return;
+  }
+  el.innerHTML = mines.map((m) => {
+    const on = m.sensorTotal ? Math.round(m.online / m.sensorTotal * 100) : 0;
+    const stBadge = m.status === 'RUNNING' ? '<span class="badge green" style="margin-left:auto">运行中</span>' : `<span class="badge gray" style="margin-left:auto">${esc(m.status || '--')}</span>`;
+    return `<div class="data-card" style="cursor:pointer" onclick="showMineDetail(${m.id})">
+      <div class="dc-top">
+        <div class="dc-ico">${ico('pick', 20)}</div>
+        <div style="min-width:0"><div class="dc-name">${esc(m.name)}</div><div class="dc-sub">${esc(m.location || '')} · ${esc(m.owner || '')}</div></div>
+        ${stBadge}
+      </div>
+      <div class="dc-body">接入传感器 <b>${m.sensorTotal}</b> 台 · 在线 <b>${m.online}</b> 台 · 预警 <b style="color:${m.warning ? 'var(--red)' : 'var(--green)'}">${m.warning}</b></div>
+      <div class="dc-foot"><span>${ico('list', 12)} 点击查看矿井详情</span><span class="num">在线率 ${on}%</span></div>
+    </div>`;
+  }).join('');
+}
+
+function showMineDetail(id) {
+  const m = (state.mines || []).find((x) => String(x.id) === String(id));
+  if (!m) return;
+  const sensors = (state.sensors || []).filter((s) => String(s.mine_id) === String(id));
+  const rows = sensors.map((s) => `<tr>
+      <td>${esc(s.name)} <span class="dim" style="font-size:10px">${esc(s.type || '')}</span></td>
+      <td class="num">${fmt2(s.value)} ${esc(s.unit || '')}</td>
+      <td class="num dim">${s.threshold == null ? '--' : s.threshold}</td>
+      <td>${s.isWarning ? '<span class="badge red">预警</span>' : '<span class="badge green">正常</span>'}</td>
+    </tr>`).join('');
+  openModal(`
+    <h3>${ico('pick', 18)} ${esc(m.name)}</h3>
+    <div class="m-row"><span>位置</span><b>${esc(m.location || '--')}</b></div>
+    <div class="m-row"><span>归属</span><b>${esc(m.owner || '--')}</b></div>
+    <div class="m-row"><span>运行状态</span><b>${esc(m.status || '--')}</b></div>
+    <div class="m-row"><span>传感器</span><b>${m.sensorTotal} 台 · 在线 ${m.online} · 预警 ${m.warning}</b></div>
+    <div class="m-desc">${sensors.length ? '实时传感器明细（WebSocket 实时数据）' : '暂无传感器接入'}</div>
+    ${sensors.length ? `<table class="tbl"><thead><tr><th>传感器</th><th>当前值</th><th>阈值</th><th>状态</th></tr></thead><tbody>${rows}</tbody></table>` : ''}
+    <div class="m-actions"><button class="btn ghost" onclick="closeModal()">关 闭</button></div>
+  `);
+}
+
+/* ---------------- 矿井拓扑 SVG（传感器统计环） ---------------- */
+function renderTopology(mines) {
+  const el = $('#mineSvg'); if (!el) return;
+  const W = 760, H = 300, cx = W / 2, cy = H / 2;
+  const n = mines.length || 1;
+  const R = Math.max(100, 70 + (n - 1) * 16);
+  const nodes = mines.map((m, i) => {
+    const a = -Math.PI / 2 + i * 2 * Math.PI / n;
+    return { x: cx + R * Math.cos(a), y: cy + R * Math.sin(a), m };
+  });
+  const arc = (x, y, r, a0, a1) => {
+    const x0 = x + r * Math.cos(a0), y0 = y + r * Math.sin(a0);
+    const x1 = x + r * Math.cos(a1), y1 = y + r * Math.sin(a1);
+    const large = (a1 - a0) > Math.PI ? 1 : 0;
+    return `M ${x0.toFixed(1)} ${y0.toFixed(1)} A ${r} ${r} 0 ${large} 1 ${x1.toFixed(1)} ${y1.toFixed(1)}`;
+  };
+  let html = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:100%">`;
+  html += `<defs><radialGradient id="supHubGrad" cx="50%" cy="50%" r="50%">
+    <stop offset="0" stop-color="rgba(88,166,160,.20)"/><stop offset="1" stop-color="rgba(88,166,160,0)"/></radialGradient></defs>`;
+  [70, 115, 160].forEach((r) => { html += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="rgba(255,255,255,.07)"/>`; });
+  nodes.forEach((p) => { html += `<line x1="${cx}" y1="${cy}" x2="${p.x.toFixed(1)}" y2="${p.y.toFixed(1)}" stroke="rgba(255,255,255,.18)" stroke-width="1.5" stroke-dasharray="5 4"/>`; });
+  html += `<circle cx="${cx}" cy="${cy}" r="46" fill="url(#supHubGrad)"/>`;
+  html += `<circle cx="${cx}" cy="${cy}" r="26" fill="#161b23" stroke="#58a6a0" stroke-width="1.5"/>`;
+  html += `<text x="${cx}" y="${cy + 4}" text-anchor="middle" font-size="12" font-weight="700" fill="#58a6a0" font-family="Noto Sans SC">监管中心</text>`;
+  html += `<text x="${cx}" y="${cy + 20}" text-anchor="middle" font-size="9" fill="#98a2b3" font-family="IBM Plex Mono">${mines.length} MINES</text>`;
+  nodes.forEach((p) => {
+    const m = p.m, total = m.sensorTotal || 0;
+    const online = m.online || 0, warn = m.warning || 0, off = Math.max(0, total - online - warn);
+    if (total > 0) {
+      let a0 = -Math.PI / 2;
+      [[online, '#74a87e'], [warn, '#c96464'], [off, '#5c6675']].forEach((seg) => {
+        if (seg[0] <= 0) return;
+        const a1 = a0 + seg[0] / total * 2 * Math.PI;
+        html += `<path d="${arc(p.x, p.y, 30, a0, a1)}" fill="none" stroke="${seg[1]}" stroke-width="7" stroke-linecap="round" opacity=".9"/>`;
+        a0 = a1;
+      });
+    }
+    const warnColor = warn ? '#c96464' : '#74a87e';
+    html += `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="17" fill="#161b23" stroke="${warnColor}" stroke-width="1.6"/>`;
+    html += `<text x="${p.x.toFixed(1)}" y="${(p.y + 4).toFixed(1)}" text-anchor="middle" font-size="11" font-weight="700" fill="${warnColor}" font-family="IBM Plex Mono">${warn > 0 ? '⚠ ' : ''}${total}</text>`;
+    html += `<text x="${p.x.toFixed(1)}" y="${(p.y + 48).toFixed(1)}" text-anchor="middle" font-size="9.5" fill="#e6e9ee" font-family="Noto Sans SC">${trunc(m.name, 9)}</text>`;
+  });
+  html += `<g font-size="10" fill="#98a2b3" font-family="Noto Sans SC">
+    <circle cx="${W - 196}" cy="18" r="5" fill="#74a87e"/><text x="${W - 185}" y="22">在线</text>
+    <circle cx="${W - 146}" cy="18" r="5" fill="#c96464"/><text x="${W - 135}" y="22">预警</text>
+    <circle cx="${W - 96}" cy="18" r="5" fill="#5c6675"/><text x="${W - 85}" y="22">离线</text>
+  </g>`;
+  html += '</svg>';
+  el.innerHTML = html;
+}
+
+/* ============================================================
+   view-alert · 监管预警
+   ============================================================ */
+async function loadAlerts() {
+  const [list, cnt] = await Promise.all([api('/alert/all'), api('/alert/unhandled/count')]);
+  state.alerts = list || [];
+  state.unhandledCount = (cnt && cnt.count) || 0;
+  renderAlerts();
+  renderReportSummary();
+}
+
+function renderAlerts() {
+  const list = state.alerts;
+  const red = list.filter((a) => a.level === 'RED').length;
+  const orange = list.filter((a) => a.level === 'ORANGE').length;
+  const yellow = list.filter((a) => a.level === 'YELLOW').length;
+  const unhandled = state.unhandledCount;
+  setVal('#alRed', red);
+  setVal('#alOrange', orange);
+  setVal('#alYellow', yellow);
+  setVal('#alUnhandled', unhandled);
+  const dot = $('#alertNavDot'); if (dot) dot.style.display = unhandled > 0 ? '' : 'none';
+  const tags = $('#alertTotalTag'); if (tags) tags.textContent = `${list.length} 条`;
+  const tagU = $('#alertUnhandledTag'); if (tagU) tagU.textContent = `${unhandled} 未处理`;
+  const body = $('#alertBody'); if (!body) return;
+  if (!list.length) {
+    body.innerHTML = '<div class="empty"><div class="e">' + ico('shield', 30) + '</div><div>暂无预警记录 · 矿井运行平稳</div></div>';
+    return;
+  }
+  body.innerHTML = `<table class="tbl">
+    <thead><tr><th>等级</th><th>传感器</th><th>预警信息</th><th>当前值</th><th>阈值</th><th>时间</th><th>矿井</th><th>状态</th><th>操作</th></tr></thead>
+    <tbody>${list.map(alertRow).join('')}</tbody>
+  </table>`;
+}
+
+function alertRow(a) {
+  const handled = !!a.handled;
+  return `<tr>
+    <td><span class="badge ${levelClass(a.level)}">${LEVEL_TXT[a.level] || a.level || '--'}</span></td>
+    <td>${esc(a.sensor_name || a.sensor_id || '--')}</td>
+    <td class="dim" title="${esc(a.message || '')}">${esc(trunc(a.message, 34))}</td>
+    <td class="num">${fmt2(a.value)}</td>
+    <td class="num dim">${a.threshold == null ? '--' : a.threshold}</td>
+    <td class="dim" style="white-space:nowrap">${fmtTime(a.created_at)}</td>
+    <td>${esc(mineName(a.mine_id))}</td>
+    <td>${handled ? '<span class="badge green">已处理</span>' : '<span class="badge red">未处理</span>'}</td>
+    <td>${handled ? '' : `<button class="btn sm" data-id="${esc(a.id)}" onclick="handleAlert(this)">确认处理</button>`}</td>
+  </tr>`;
+}
+
+async function handleAlert(btn) {
+  if (!confirm('确认处理该预警？')) return;
+  try {
+    await api('/alert/handle', { method: 'POST', body: { alertId: btn.dataset.id, handledBy: curName() } });
+    showToast('预警已确认处理');
+    loadAlerts(); loadOverview();
+  } catch (e) { toastErr(e); }
+}
+
+async function clearAllAlerts() {
+  if (!confirm('确认将全部未处理预警标记为已处理？')) return;
+  try {
+    await api('/alert/clear', { method: 'POST' });
+    showToast('已确认全部预警');
+    loadAlerts(); loadOverview();
+  } catch (e) { toastErr(e); }
+}
+
+/* 顶板压力趋势（监管态势参考） */
+async function loadTrend() {
+  const rows = await api('/analysis/trend?hours=24');
+  state.trend = rows || [];
+  const el = $('#pressureTrend'); if (!el) return;
+  if (!state.trend.length) { el.innerHTML = '<div class="empty" style="padding:50px 0"><div class="e">' + ico('trend', 30) + '</div><div>暂无趋势数据</div></div>'; return; }
+  const vals = state.trend.map((r) => Number(r.value) || 0);
+  const step = Math.max(1, Math.ceil(state.trend.length / 6));
+  const labels = state.trend.map((r, i) => {
+    if (i === 0 || i === state.trend.length - 1 || i % step === 0) {
+      const d = new Date(r.created_at), p = (x) => String(x).padStart(2, '0');
+      return `${p(d.getHours())}:${p(d.getMinutes())}`;
+    }
+    return '';
+  });
+  renderLineChart('#pressureTrend', vals, { labels, stroke: '#58a6a0' });
+}
+
+/* ============================================================
+   view-dispatch · 应急调度
+   ============================================================ */
+async function loadDispatches() {
+  const ds = await api('/supervision/dispatches');
+  state.dispatches = ds || [];
+  renderDispatches();
+}
+
+function renderDispatches() {
+  const ds = state.dispatches;
+  const total = ds.length;
+  const pending = ds.filter((d) => d.status === 'PENDING').length;
+  const inprog = ds.filter((d) => d.status === 'IN_PROGRESS').length;
+  const done = ds.filter((d) => d.status === 'DONE').length;
+  setVal('#dpTotal', total);
+  setVal('#dpPending', pending);
+  setVal('#dpInProgress', inprog);
+  setVal('#dpDone', done);
+  const tag = $('#dpCountTag'); if (tag) tag.textContent = `${total} 条`;
+  const el = $('#dispatchList'); if (!el) return;
+  if (!ds.length) { el.innerHTML = '<div class="empty"><div class="e">' + ico('antenna', 30) + '</div><div>暂无调度指令</div></div>'; renderDispatchSummary(); renderReportSummary(); return; }
+  el.innerHTML = ds.map((d) => {
+    const st = STATUS_META[d.status] || [d.status || '未知', 'gray'];
+    const nx = NEXT_STATUS[d.status];
+    const nxBtn = nx ? `<button class="btn sm" data-id="${d.id}" onclick="nextDispatchStatus(this)">更新状态 → ${STATUS_META[nx][0]}</button>` : '<span class="badge green">已闭环</span>';
+    return `<div class="list-item">
+      <div class="li-ico">${ico('antenna', 16)}</div>
+      <div class="li-body">
+        <div class="li-t">${esc(d.title)} <span class="badge ${levelClass(d.level)}">${LEVEL_TXT[d.level] || d.level || '--'}</span> <span class="badge ${st[1]}">${st[0]}</span></div>
+        <div class="li-d">${esc(d.content || '')}</div>
+        <div class="li-d" style="color:var(--muted-2)">${ico('gauge', 12)} 目标矿井：${esc(d.target_mine || '--')} · 发起：${esc(d.creator || '--')} · ${fmtTime(d.created_at)}</div>
+      </div>
+      <div style="flex:none">${nxBtn}</div>
+    </div>`;
+  }).join('');
+  renderDispatchSummary();
+  renderReportSummary();
+}
+
+function newDispatch() {
+  const opts = (state.mines && state.mines.length)
+    ? state.mines.map((m) => `<option value="${esc(m.name)}">${esc(m.name)}</option>`).join('')
+    : '<option>中建筑港青岛西海岸示范矿井</option>';
+  openModal(`
+    <h3>${ico('antenna', 18)} 新建调度指令</h3>
+    <div class="field"><label>指令标题</label><input id="dpTitle" type="text" placeholder="请输入调度指令标题"></div>
+    <div class="field"><label>指令级别</label>
+      <select id="dpLevel">
+        <option value="RED">红色 · 最高优先级</option>
+        <option value="ORANGE" selected>橙色 · 高优先级</option>
+        <option value="YELLOW">黄色 · 一般</option>
+      </select></div>
+    <div class="field"><label>目标矿井</label><select id="dpMine">${opts}</select></div>
+    <div class="field"><label>指令内容</label><textarea id="dpContent" placeholder="请输入调度指令内容"></textarea></div>
+    <div class="m-actions">
+      <button class="btn ghost" onclick="closeModal()">取 消</button>
+      <button class="btn solid" onclick="submitDispatch()">发布指令</button>
+    </div>
+  `);
+}
+
+async function submitDispatch() {
+  const title = $('#dpTitle').value.trim();
+  if (!title) { showToast('请输入指令标题'); return; }
+  const body = {
+    title,
+    level: $('#dpLevel').value,
+    content: $('#dpContent').value.trim(),
+    target_mine: $('#dpMine').value,
+    status: 'PENDING',
+    creator: curName()
+  };
+  try {
+    await api('/supervision/dispatches', { method: 'POST', body });
+    showToast('调度指令已发布');
+    closeModal();
+    loadDispatches(); loadOverview();
+  } catch (e) { toastErr(e); }
+}
+
+async function nextDispatchStatus(btn) {
+  const id = btn.dataset.id;
+  const cur = (state.dispatches || []).find((d) => String(d.id) === String(id));
+  const nx = cur && NEXT_STATUS[cur.status];
+  if (!nx) return;
+  if (!confirm(`将调度指令状态更新为「${STATUS_META[nx][0]}」？`)) return;
+  try {
+    await api('/supervision/dispatches/status', { method: 'POST', body: { id: Number(id), status: nx } });
+    showToast('调度状态已更新');
+    loadDispatches(); loadOverview();
+  } catch (e) { toastErr(e); }
+}
+
+/* ============================================================
+   view-report · 监管报告
+   ============================================================ */
+function renderReportSummary() {
+  const mines = state.mines || [], alerts = state.alerts || [], ds = state.dispatches || [];
+  const totalM = mines.length;
+  const safe = mines.filter((m) => !m.warning).length;
+  const safePct = totalM ? Math.round(safe / totalM * 100) : 0;
+  const sv = $('#rsSafeVal'); if (sv) sv.innerHTML = totalM ? `${safe}<span style="font-size:14px;color:var(--muted-2)"> / ${totalM} 座安全</span>` : '--';
+  setVal('#rsSafeSub', totalM ? `平稳矿井 ${safe} 座 · 存在预警 ${totalM - safe} 座` : '暂无矿井接入');
+  const sb = $('#rsSafeBarI'); if (sb) sb.style.width = safePct + '%';
+
+  const totalA = alerts.length;
+  const handledA = alerts.filter((a) => a.handled).length;
+  const ratePct = totalA ? Math.round(handledA / totalA * 100) : 0;
+  setVal('#rsRateVal', totalA ? `${ratePct}%` : '--');
+  setVal('#rsRateSub', totalA ? `已处置 ${handledA} / 累计预警 ${totalA} · 未处理 ${totalA - handledA}` : '暂无预警数据');
+  const rb = $('#rsRateBarI'); if (rb) rb.style.width = ratePct + '%';
+
+  const totalD = ds.length;
+  const doneD = ds.filter((d) => d.status === 'DONE').length;
+  const activeD = totalD - doneD;
+  const respPct = totalD ? Math.round(doneD / totalD * 100) : 0;
+  setVal('#rsRespVal', totalD ? `${respPct}%` : '--');
+  setVal('#rsRespSub', totalD ? `已闭环 ${doneD} / 指令总数 ${totalD} · 流转中 ${activeD}` : '暂无调度指令');
+  const db = $('#rsRespBarI'); if (db) db.style.width = respPct + '%';
+}
+
+async function loadReports() {
+  const rs = await api('/analysis/reports');
+  state.reports = rs || [];
+  renderReportList();
+}
+
+function renderReportList() {
+  const rs = state.reports;
+  const el = $('#reportList'); if (!el) return;
+  if (!rs.length) { el.innerHTML = '<div class="empty"><div class="e">' + ico('file', 30) + '</div><div>暂无分析报告</div></div>'; return; }
+  el.innerHTML = rs.map((r) => `
+    <div class="list-item">
+      <div class="li-ico">${ico('file', 16)}</div>
+      <div class="li-body">
+        <div class="li-t">${esc(r.title)}</div>
+        <div class="li-d">${esc(r.content || '')}</div>
+      </div>
+      <div style="flex:none;text-align:right">
+        <div class="li-time" style="margin-bottom:4px">${fmtTime(r.created_at)}</div>
+        <span class="badge cyan">${esc(r.author || '智库端')}</span>
+      </div>
+    </div>`).join('');
+}
+
+function renderDispatchSummary() {
+  const el = $('#dispatchSummary'); if (!el) return;
+  const ds = state.dispatches || [];
+  const total = ds.length || 1;
+  el.innerHTML = ['PENDING', 'IN_PROGRESS', 'DONE'].map((s) => {
+    const c = ds.filter((d) => d.status === s).length;
+    const color = s === 'PENDING' ? 'var(--amber)' : (s === 'IN_PROGRESS' ? 'var(--cyan)' : 'var(--green)');
+    return `<div style="margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px">
+        <span>${STATUS_META[s][0]}</span>
+        <span style="font-family:var(--mono)">${c} <span style="color:${color};font-weight:700">${Math.round(c / total * 100)}%</span></span>
+      </div>
+      <div class="bar ${STATUS_META[s][1]}"><i style="width:${Math.round(c / total * 100)}%"></i></div>
+    </div>`;
+  }).join('');
+}
+
+/* ---------------- 生成自包含 HTML 监管报告 ---------------- */
+async function genReport() {
+  try {
+    const [ov, alerts, dispatches, reports] = await Promise.all([
+      api('/supervision/overview'), api('/alert/all'), api('/supervision/dispatches'), api('/analysis/reports')
+    ]);
+    const as = (ov && ov.alertStat) || { RED: 0, ORANGE: 0, YELLOW: 0 };
+    const mines = (ov && ov.mines) || [];
+    const unhandled = (alerts || []).filter((a) => !a.handled);
+    const handled = (alerts || []).filter((a) => a.handled);
+    const now = new Date().toLocaleString('zh-CN');
+    const mineRows = mines.map((m) => `<tr><td>${esc(m.name)}</td><td>${esc(m.location || '')}</td><td>${esc(m.owner || '')}</td><td>${m.sensorTotal}</td><td>${m.online}</td><td class="${m.warning ? 'r' : ''}">${m.warning}</td></tr>`).join('');
+    const alertRows = unhandled.map((a) => `<tr><td><span class="lv ${(a.level || '').toLowerCase()}">${LEVEL_TXT[a.level] || a.level}</span></td><td>${esc(a.sensor_name || '')}</td><td>${esc(a.message || '')}</td><td>${fmt2(a.value)}</td><td>${a.threshold == null ? '--' : a.threshold}</td><td>${fmtTime(a.created_at)}</td><td>${esc(mineName(a.mine_id))}</td></tr>`).join('');
+    const dispatchRows = (dispatches || []).map((d) => `<tr><td>${esc(d.title)}</td><td><span class="lv ${(d.level || '').toLowerCase()}">${LEVEL_TXT[d.level] || d.level || '--'}</span></td><td>${esc(d.target_mine || '')}</td><td>${STATUS_META[d.status] ? STATUS_META[d.status][0] : (d.status || '--')}</td><td>${esc(d.creator || '')}</td><td>${fmtTime(d.created_at)}</td></tr>`).join('');
+    const reportRows = (reports || []).map((r) => `<div class="item"><div class="t">${esc(r.title)}</div><div class="m">${esc(r.author || '智库端')} · ${fmtTime(r.created_at)}</div><div class="c">${esc(r.content || '')}</div></div>`).join('');
+    const html = `<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="UTF-8"><title>监管报告 · ${dateStamp()}</title>
+<style>
+  body{font-family:'Microsoft YaHei',sans-serif;background:#f4f6f9;color:#1a2433;margin:0;padding:32px;line-height:1.7}
+  h1{font-size:22px;margin:0 0 4px}.meta{color:#7a8699;font-size:12px;margin-bottom:22px}
+  .cards{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:22px}
+  .card{flex:1;min-width:150px;background:#fff;border:1px solid #e3e8f0;border-radius:8px;padding:14px 16px}
+  .card .k{font-size:12px;color:#7a8699}.card .v{font-size:24px;font-weight:700;margin-top:4px}
+  h2{font-size:16px;border-left:4px solid #58a6a0;padding-left:10px;margin:26px 0 12px}
+  table{width:100%;border-collapse:collapse;background:#fff;font-size:12.5px;margin-bottom:18px}
+  th{background:#eef3f9;text-align:left;padding:8px 10px;color:#5a6a80}
+  td{padding:8px 10px;border-top:1px solid #eef1f6}.r{color:#d3384c;font-weight:700}
+  .lv{display:inline-block;padding:1px 8px;border-radius:4px;font-size:11px;font-weight:700}
+  .lv.red{background:#fdeaea;color:#d3384c}.lv.orange{background:#fdf0e3;color:#e67e22}.lv.yellow{background:#fdf6dd;color:#c9a00c}
+  .item{background:#fff;border:1px solid #e3e8f0;border-radius:8px;padding:12px 14px;margin-bottom:10px}
+  .item .t{font-weight:700}.item .m{color:#7a8699;font-size:11px;margin:2px 0 6px}.item .c{color:#445;font-size:12.5px}
+  .foot{margin-top:26px;font-size:11px;color:#9aa6b8;text-align:center}
+</style></head><body>
+  <h1><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3b82c4" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:6px" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>煤矿顶板灾变智能预警 · 监管报告</h1>
+  <div class="meta">生成单位：深地智控 · 监管端（集团/安监部门） · 生成时间：${esc(now)}</div>
+  <div class="cards">
+    <div class="card"><div class="k">监管矿井数</div><div class="v">${ov.mineCount}</div></div>
+    <div class="card"><div class="k">接入传感器</div><div class="v">${ov.sensorTotal}</div></div>
+    <div class="card"><div class="k">未处理预警</div><div class="v">${ov.unhandledAlert}</div></div>
+    <div class="card"><div class="k">进行中调度</div><div class="v">${ov.activeDispatch}</div></div>
+    <div class="card"><div class="k">红色预警</div><div class="v">${as.RED}</div></div>
+  </div>
+  <div class="cards">
+    <div class="card"><div class="k">橙色预警</div><div class="v">${as.ORANGE}</div></div>
+    <div class="card"><div class="k">黄色预警</div><div class="v">${as.YELLOW}</div></div>
+    <div class="card"><div class="k">预警累计</div><div class="v">${(alerts || []).length}</div></div>
+    <div class="card"><div class="k">已处置</div><div class="v">${handled.length}</div></div>
+    <div class="card"><div class="k">处置率</div><div class="v">${alerts.length ? Math.round(handled.length / alerts.length * 100) : 0}%</div></div>
+  </div>
+  <h2>一、矿井安全态势</h2>
+  <table><thead><tr><th>矿井名称</th><th>位置</th><th>归属</th><th>传感器</th><th>在线</th><th>预警</th></tr></thead><tbody>${mineRows || '<tr><td colspan="6">暂无矿井</td></tr>'}</tbody></table>
+  <h2>二、未处理预警明细（${unhandled.length} 条）</h2>
+  <table><thead><tr><th>等级</th><th>传感器</th><th>预警信息</th><th>当前值</th><th>阈值</th><th>时间</th><th>矿井</th></tr></thead><tbody>${alertRows || '<tr><td colspan="7">无未处理预警</td></tr>'}</tbody></table>
+  <h2>三、应急调度记录（${(dispatches || []).length} 条）</h2>
+  <table><thead><tr><th>标题</th><th>级别</th><th>目标矿井</th><th>状态</th><th>发起人</th><th>时间</th></tr></thead><tbody>${dispatchRows || '<tr><td colspan="6">暂无调度记录</td></tr>'}</tbody></table>
+  <h2>四、智库分析报告（三端数据互通）</h2>
+  ${reportRows || '<div class="item"><div class="c">暂无分析报告</div></div>'}
+  <div class="foot">本报告由「深地智控」监管端基于后端实时数据自动生成 · 煤矿顶板灾变智能预警与可视化决策系统</div>
+</body></html>`;
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `监管报告_${dateStamp()}.html`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+    showToast('监管报告已生成并下载');
+  } catch (e) { toastErr(e); }
+}
+
+/* ---------------- 导出监管快照 CSV ---------------- */
+async function exportCSV() {
+  try {
+    const [sensors, alerts] = await Promise.all([api('/sensor/all'), api('/alert/all')]);
+    const q = (v) => `"${String(v == null ? '' : v).replace(/"/g, '""')}"`;
+    let csv = '\uFEFF传感器实时快照\n';
+    csv += '传感器ID,类型,名称,单位,当前值,阈值,状态,所属矿井,预警状态\n';
+    (sensors || []).forEach((s) => {
+      csv += [s.id, s.type, s.name, s.unit || '', s.value, s.threshold == null ? '' : s.threshold, s.status, s.mine_id, s.isWarning ? '是' : '否'].map(q).join(',') + '\n';
+    });
+    csv += '\n预警汇总\n';
+    csv += '预警ID,传感器,等级,信息,当前值,阈值,时间,处理状态\n';
+    (alerts || []).forEach((a) => {
+      csv += [a.id, a.sensor_name || '', a.level, a.message || '', a.value, a.threshold == null ? '' : a.threshold, fmtTime(a.created_at), a.handled ? '已处理' : '未处理'].map(q).join(',') + '\n';
+    });
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `监管快照_${dateStamp()}.csv`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+    showToast('监管快照 CSV 已下载');
+  } catch (e) { toastErr(e); }
+}
+
+/* ============================================================
+   实时互通（WebSocket）+ 60s 兜底刷新
+   ============================================================ */
+function handleSensorUpdate(list) {
+  // 依据实时传感器流重算每座矿井的接入/在线/预警统计
+  state.sensors = list;
+  const base = (state.overview && state.overview.mines) || state.mines;
+  const map = {};
+  (Array.isArray(base) ? base : []).forEach((m) => { map[m.id] = Object.assign({}, m); });
+  list.forEach((s) => {
+    const b = map[s.mine_id]; if (!b) return;
+    b.sensorTotal = (b.sensorTotal || 0) + 1;
+    if (s.status === 'ONLINE') b.online = (b.online || 0) + 1;
+    if (s.isWarning) b.warning = (b.warning || 0) + 1;
+  });
+  state.mines = Object.values(map);
+  setVal('#ovSensorTotal', list.length);
+  renderMines(state.mines);
+  renderTopology(state.mines);
+  renderReportSummary();
+}
+
+function onNewAlert(p) {
+  const nm = (p && (p.sensor_name || p.sensor_id)) || '';
+  const msg = (p && p.message) || '';
+  showToast('新预警：' + (nm ? `${nm} ${msg}` : (msg || '未知预警')));
+  loadAlerts();
+  loadOverview();
+}
+
+async function loadSensors() {
+  try { state.sensors = await api('/sensor/all'); } catch (e) { /* 非关键，容错 */ }
+}
+
+async function refreshAll() {
+  await Promise.allSettled([loadOverview(), loadAlerts(), loadDispatches(), loadReports(), loadTrend(), loadSensors()]);
+  renderReportSummary();
+  renderDispatchSummary();
+  renderReportList();
+}
+
+/* ============================================================
+   初始化
+   ============================================================ */
+(async function init() {
+  const session = requireLogin('supervision.html');
+  if (!session) { throw new Error('未登录，正在跳转登录页'); }
+
+  initCommonShell('监管端 · 集团/安监部门', PAGE_META);
+  window.switchView('overview');
+
+  wsClient.connect('supervision');
+  wsClient.on('sensor_update', (p) => { if (Array.isArray(p)) handleSensorUpdate(p); });
+  wsClient.on('alert_update', (p) => { if (p) onNewAlert(p); });
+
+  refreshAll();
+  setInterval(refreshAll, 60000);
+})();
+</script>
+</body>
+</html>

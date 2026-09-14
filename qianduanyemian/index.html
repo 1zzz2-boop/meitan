@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>深地智控 · 三端入口 | 煤矿顶板灾变智能预警与可视化决策系统</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="app-bg"></div>
+
+<!-- ====================== 三端入口 ====================== -->
+<div class="portal-wrap" id="portalView">
+  <div class="portal-top">
+    <div class="pt-brand">
+      <div class="pt-mark" id="brandMark">⛏️</div>
+      <div><h1>深地智控 · 煤矿顶板智能预警平台</h1><p>DEEP-SEAM ROOF GUARD · 三端协同可视化管控平台</p></div>
+    </div>
+    <div class="h-right">
+      <div class="h-chip"><span class="led gray" id="connLed"></span><span id="connText">正在连接后端...</span></div>
+      <div class="h-sep"></div>
+      <div class="h-clock" id="clock">--:--:--</div>
+    </div>
+  </div>
+
+  <div class="portal-main">
+    <div class="portal-title">
+      <h2>「三端」协同可视化管控</h2>
+      <p>企业端 · 生产矿井 &nbsp;/&nbsp; 智库端 · 高校科研机构 &nbsp;/&nbsp; 监管端 · 集团 / 安监部门</p>
+    </div>
+
+    <div class="portal-grid">
+      <div class="portal-card p-ent" data-target="enterprise.html">
+        <div class="p-ico">🏭</div>
+        <div class="p-name">企业端</div>
+        <div class="p-sub">生产矿井 · 现场管控中心</div>
+        <div class="p-list">
+          <div>· 实时监测：<b>应力场 / 位移场透明化感知</b></div>
+          <div>· 预警处置：<b>三级预警分级响应</b></div>
+          <div>· 数字孪生：<b>巷道三维可视化场景</b></div>
+          <div>· 系统设置：<b>多参数阈值动态配置</b></div>
+        </div>
+        <div class="p-go" data-target="enterprise.html">进入企业端 →</div>
+      </div>
+
+      <div class="portal-card p-think" data-target="thinktank.html">
+        <div class="p-ico">🎓</div>
+        <div class="p-name">智库端</div>
+        <div class="p-sub">大学 / 科研机构 · 技术研发中心</div>
+        <div class="p-list">
+          <div>· 数据集：<b>多源监测历史数据接入</b></div>
+          <div>· 分析研究：<b>趋势 / 威胁度关联分析</b></div>
+          <div>· 模型指标：<b>数字孪生 AI 预警模型</b></div>
+          <div>· 报告导出：<b>分析研究结论报告</b></div>
+        </div>
+        <div class="p-go" data-target="thinktank.html">进入智库端 →</div>
+      </div>
+
+      <div class="portal-card p-sup" data-target="supervision.html">
+        <div class="p-ico">🏛️</div>
+        <div class="p-name">监管端</div>
+        <div class="p-sub">集团 / 安监部门 · 远程管理中心</div>
+        <div class="p-list">
+          <div>· 多矿井总览：<b>远程集中监控</b></div>
+          <div>· 监管预警：<b>跨矿井预警态势</b></div>
+          <div>· 应急调度：<b>远程协同调度指令</b></div>
+          <div>· 监管报告：<b>安全生产监管报告</b></div>
+        </div>
+        <div class="p-go" data-target="supervision.html">进入监管端 →</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="portal-foot">深地智控 · 基于数字孪生的煤矿顶板灾变智能预警与可视化决策系统 &nbsp;·&nbsp; 实时数据通道 ws://localhost:8080</div>
+</div>
+
+<!-- ====================== 登录弹窗 ====================== -->
+<div class="modal-mask" id="modalMask">
+  <div class="modal" id="modalBox" style="width:420px"></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script src="assets/app.js?v=20260914"></script>
+<script>
+/* 统一图标：入口品牌与卡片 emoji → SVG */
+(function () {
+  const mark = $('#brandMark');
+  if (mark) mark.innerHTML = ico('pick', 22);
+  [
+    ['.portal-card.p-ent .p-ico', 'mine', 32],
+    ['.portal-card.p-think .p-ico', 'cap', 32],
+    ['.portal-card.p-sup .p-ico', 'gov', 32]
+  ].forEach(([sel, name, size]) => {
+    const el = $(sel);
+    if (el) el.innerHTML = ico(name, size);
+  });
+})();
+
+/* 卡片点击 → 登录后进入目标门户 */
+document.querySelectorAll('[data-target]').forEach((el) => {
+  el.addEventListener('click', (e) => {
+    const t = e.target.closest('[data-target]');
+    if (!t) return;
+    openLogin(t.dataset.target);
+  });
+});
+
+/* 登录弹窗：三端账号统一登录，成功后跳转对应门户 */
+function openLogin(target) {
+  const t = target || (getSession() && getSession().target) || 'enterprise.html';
+  openModal(`
+    <h3>${ico('shield', 16)} 三端统一登录</h3>
+    <div class="field">
+      <label>账号</label>
+      <input id="lgUser" type="text" placeholder="请输入账号" autocomplete="username">
+    </div>
+    <div class="field">
+      <label>密码</label>
+      <input id="lgPass" type="password" placeholder="请输入密码" autocomplete="current-password" style="margin-bottom:10px">
+    </div>
+    <div class="field">
+      <label>验证码</label>
+      <div style="display:flex;align-items:center;gap:8px">
+        <input id="lgCap" type="text" maxlength="4" placeholder="请输入验证码" autocomplete="off" style="flex:1;letter-spacing:3px" onkeydown="if(event.key==='Enter')doLogin()">
+        <button type="button" id="lgCapBox" onclick="refreshCaptcha()" title="点击刷新验证码"
+          style="min-width:86px;height:38px;border:1px dashed rgba(255,255,255,.35);border-radius:8px;background:rgba(255,255,255,.05);color:var(--mint,#6fd0a8);font-family:'IBM Plex Mono';font-weight:700;font-size:18px;letter-spacing:4px;cursor:pointer">加载中</button>
+      </div>
+    </div>
+    <div class="m-desc" style="font-size:11px;line-height:1.9">
+      企业端：admin / mine_super &nbsp;·&nbsp; 密码 123456<br>
+      智库端：t_admin &nbsp;·&nbsp; 密码 123456<br>
+      监管端：s_admin &nbsp;·&nbsp; 密码 123456
+    </div>
+    <div class="m-actions">
+      <button class="btn ghost" onclick="closeModal()">取消</button>
+      <button class="btn solid" id="lgBtn" onclick="doLogin()">登 录</button>
+    </div>
+  `);
+  const u = $('#lgUser'), p = $('#lgPass');
+  u.focus();
+  const enter = (e) => { if (e.key === 'Enter') doLogin(); };
+  u.addEventListener('keydown', enter);
+  p.addEventListener('keydown', enter);
+  window._loginTarget = t;
+  refreshCaptcha(); // 打开弹窗即加载验证码
+}
+
+/* 服务端图形验证码：可在按钮上点击刷新 */
+let _captcha = null;
+async function refreshCaptcha() {
+  const box = $('#lgCapBox');
+  if (box) { box.textContent = '…'; box.style.opacity = .6; }
+  try {
+    _captcha = await apiCaptcha();
+    if (box) { box.textContent = _captcha.code; box.style.opacity = 1; }
+  } catch (e) {
+    if (box) box.textContent = '重新加载';
+    showToast('验证码加载失败：' + e.message);
+  }
+}
+
+async function doLogin() {
+  const u = $('#lgUser').value.trim();
+  const p = $('#lgPass').value;
+  if (!u || !p) return showToast('请输入账号和密码');
+  if (!_captcha) { try { await refreshCaptcha(); } catch (e) { return; } }
+  const c = $('#lgCap').value.trim();
+  if (!c) return showToast('请输入验证码');
+  const btn = $('#lgBtn');
+  btn.textContent = '登录中...'; btn.disabled = true;
+  try {
+    const r = await api('/auth/login', { method: 'POST', body: { username: u, password: p, captchaId: _captcha.captchaId, captchaCode: c } });
+    setSession({ token: r.token, user: r.user });
+    // 依据角色跳转对应门户
+    const roleMap = { enterprise: 'enterprise.html', thinktank: 'thinktank.html', supervision: 'supervision.html' };
+    const page = roleMap[r.user.role] || window._loginTarget || 'enterprise.html';
+    showToast('登录成功，正在进入' + (r.user.endName || r.user.role) + '...');
+    setTimeout(() => { location.href = page; }, 600);
+  } catch (e) {
+    // 验证码/凭据错误、限流或网络异常统一提示，并刷新验证码（一次性消费）
+    showToast(e.message || '登录失败');
+    refreshCaptcha();
+    const ci = $('#lgCap'); if (ci) ci.value = '';
+  } finally {
+    if (btn) { btn.textContent = '登 录'; btn.disabled = false; }
+  }
+}
+
+/* 时钟 */
+(function () {
+  const tick = () => {
+    const d = new Date(), p = (n) => String(n).padStart(2, '0');
+    $('#clock').textContent = `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+  };
+  tick(); setInterval(tick, 1000);
+})();
+
+/* 后端连通性检测（HTTP + WS） */
+async function checkBackend() {
+  const led = $('#connLed'), txt = $('#connText');
+  try {
+    await api('/health');
+    led.className = 'led'; txt.textContent = '后端服务 · 在线';
+  } catch (e) {
+    led.className = 'led gray'; txt.textContent = '后端服务 · 离线';
+  }
+}
+checkBackend();
+wsClient.on('connection_status', (p) => {
+  const led = $('#connLed'), txt = $('#connText');
+  if (p.connected) { led.className = 'led'; txt.textContent = '实时数据通道 · 在线'; }
+});
+wsClient.connect('portal');
+</script>
+</body>
+</html>

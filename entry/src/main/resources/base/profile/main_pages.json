@@ -1,0 +1,15 @@
+{
+  "src": [
+    "pages/HomePage",
+    "pages/LoginPage",
+    "pages/RegisterPage",
+    "pages/ForgotPasswordPage",
+    "pages/VRScenePage",
+    "pages/SensorDetailPage",
+    "pages/ThirdPartyAuthPage",
+    "pages/EnterpriseDashboard",
+    "pages/ThinkTankDashboard",
+    "pages/SupervisionDashboard",
+    "pages/CollaborationPage"
+  ]
+}
