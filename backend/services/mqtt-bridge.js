@@ -1,4 +1,4 @@
-/**
+﻿/**
  * MQTT 桥接服务
  * 订阅井下 MQTT 数据（sensor/<sensorId>/data），写入数据库并实时广播到所有端（PC/鸿蒙）。
  * 
@@ -138,4 +138,4 @@ function status() {
   };
 }
 
-module.exports = { start, stop, status, ingest };
+module.exports = { start, stop, status, ingest, parsePayload };

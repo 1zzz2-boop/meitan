@@ -1,3 +1,15 @@
+﻿/**
+ * 冒烟测试：核心 API 连通（依赖真实数据库）
+ * authenticate 打桩放行，验证路由 → 控制器 → 数据库全链路返回 200 且为数组。
+ */
+jest.mock('../middleware/auth', () => ({
+  authenticate: (req, res, next) => {
+    req.auth = { token: 'test-token', role: 'supervision', user: { id: 1 } };
+    next();
+  },
+  authorize: (...roles) => (req, res, next) => next()
+}));
+
 const request = require('supertest');
 const app = require('../src/app');
 

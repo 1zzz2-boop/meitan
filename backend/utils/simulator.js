@@ -1,4 +1,4 @@
-const { query } = require('../config/database');
+﻿const { query } = require('../config/database');
 const alertService = require('../services/alert.service');
 const wsHub = require('./wsHub');
 
@@ -138,4 +138,4 @@ function stop() {
     if (timer) { clearInterval(timer); timer = null; }
 }
 
-module.exports = { start, stop, tick };
+module.exports = { start, stop, tick, nextValue, MODEL_CAL };
