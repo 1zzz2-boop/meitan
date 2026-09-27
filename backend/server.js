@@ -3,13 +3,18 @@ const http = require('http');
 const https = require('https');
 const fs = require('fs');
 const path = require('path');
-const { connectToDatabase, closeDatabaseConnection } = require('./config/database');
+const { connectToDatabase, closeDatabaseConnection, query } = require('./config/database');
 const { WebSocketServer } = require('ws');
 const url = require('url');
 const wsHub = require('./utils/wsHub');
 const simulator = require('./utils/simulator');
 const kvStore = require('./utils/kv-store');
 const mqttBridge = require('./services/mqtt-bridge');
+const udpBridge = require('./services/udp-bridge');
+const escalationService = require('./services/escalation.service');
+const sensorService = require('./services/sensor.service');
+const archiverService = require('./services/archiver.service');
+const { runMigrations } = require('./utils/migrate');
 require('dotenv').config();
 
 const PORT = process.env.PORT || 3000;
@@ -73,6 +78,11 @@ async function startServer() {
             process.exit(1);
         }
 
+        // 轻量字段迁移（幂等；DDL 权限不足时自动跳过）
+        await runMigrations();
+
+        // 静态托管前端目录已注入 src/app.js（置于 404 兜底之前）
+
         // 启动 Express（HTTP）
         app.listen(PORT, () => {
             console.log(`Server is running on port ${PORT}`);
@@ -94,7 +104,28 @@ async function startServer() {
                     client.send(msg);
                 }
             });
+            // 单对象感知更新时，节流补发一份「全量数组快照」，确保前端数组刷新路径必然触发
+            if (!Array.isArray(payload) && payload && payload.id) {
+                pushFullSnapshot();
+            }
         });
+
+        // 每 ~2 秒补发一次全量传感器快照（俗称全集推送，兼容前端数组刷新路径）
+        let lastFullTs = 0;
+        function pushFullSnapshot() {
+            if (Date.now() - lastFullTs < 2000) return;
+            lastFullTs = Date.now();
+            // 附上 isWarning，避免全量快照(每2秒)覆盖单对象广播(带 isWarning)导致前端预警态抖动
+            query('SELECT * FROM sensors ORDER BY id')
+                .then((rows) => {
+                    const payload = rows.map((s) => ({ ...s, isWarning: sensorService.isOverThreshold(s) }));
+                    const out = JSON.stringify({ type: 'sensor_update', payload });
+                    wss.clients.forEach((c) => {
+                        if (c.readyState === c.OPEN) c.send(out);
+                    });
+                })
+                .catch((e) => console.warn('[full-snapshot] 失败:', e.message));
+        }
 
         wss.on('connection', (ws, req) => {
             const params = url.parse(req.url, true).query;
@@ -126,10 +157,22 @@ async function startServer() {
         });
 
         // 启动数据模拟器（为鸿蒙端与 PC 端提供统一实时数据源）
-        simulator.start();
+        // SIMULATOR_ENABLED=0/false 时禁用，让实时监测只反映真实硬件数据
+        const simEnabled = process.env.SIMULATOR_ENABLED !== '0' && process.env.SIMULATOR_ENABLED !== 'false';
+        if (simEnabled) simulator.start();
+        else console.log('[simulator] 已禁用（SIMULATOR_ENABLED=0）');
 
         // 启动 MQTT 桥接（broker 不可达时自动重连，不阻塞后端）
         mqttBridge.start();
+
+        // 启动 UDP 网关（上位机接收硬件端/VR端数据；绑定失败仅告警不阻塞启动）
+        udpBridge.start();
+
+        // 启动预警升级状态机（未处置预警按级别自动升级并广播）
+        escalationService.start();
+
+        // 启动历史数据归档任务（明细超期聚合入归档表）
+        archiverService.start();
     } catch (error) {
         console.error('Failed to start server:', error);
         process.exit(1);
@@ -140,6 +183,9 @@ process.on('SIGINT', async () => {
     console.log('SIGINT received. Shutting down gracefully...');
     simulator.stop();
     mqttBridge.stop();
+    udpBridge.stop();
+    escalationService.stop();
+    archiverService.stop();
     await kvStore.quit();
     await closeDatabaseConnection();
     process.exit(0);
@@ -149,6 +195,9 @@ process.on('SIGTERM', async () => {
     console.log('SIGTERM received. Shutting down gracefully...');
     simulator.stop();
     mqttBridge.stop();
+    udpBridge.stop();
+    escalationService.stop();
+    archiverService.stop();
     await kvStore.quit();
     await closeDatabaseConnection();
     process.exit(0);

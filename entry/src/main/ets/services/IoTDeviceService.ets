@@ -670,18 +670,31 @@ export class IoTDeviceService {
     if (this.alertCallback) this.alertCallback(this.alerts);
   }
 
+  private realtimeStarted: boolean = false;
+
   /**
    * 开启与后端 WebSocket 的实时数据通道（双端数据互通核心）
-   * 后端每 10 秒推送传感器数据，预警产生时实时推送 alert_update
+   * 后端既推单对象（硬件单帧，即时）也推数组（全量快照兜底）
    */
   public startRealtime(): void {
     realtimeClient.connect('harmony');
+    if (this.realtimeStarted) return;
+    this.realtimeStarted = true;
+
     realtimeClient.on('sensor_update', (payload: Object) => {
+      let list: BackendSensor[] = [];
       if (Array.isArray(payload)) {
-        const list = this.mapBackendSensors(payload as BackendSensor[]);
-        list.forEach((s) => this.sensors.set(s.id, s));
-        if (this.updateCallback) this.updateCallback(this.getAllSensors());
+        list = payload as BackendSensor[];
+      } else {
+        if (payload === null || payload === undefined) return;
+        const one = payload as BackendSensor;
+        if (!one.id) return;
+        list = [one];
       }
+      if (list.length === 0) return;
+      const mapped = this.mapBackendSensors(list);
+      mapped.forEach((s) => this.sensors.set(s.id, s));
+      if (this.updateCallback) this.updateCallback(this.getAllSensors());
     });
     realtimeClient.on('alert_update', (payload: Object) => {
       if (!payload) return;

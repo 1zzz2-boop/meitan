@@ -6,9 +6,10 @@ import { router } from '@kit.ArkUI';
 import { promptAction } from '@kit.ArkUI';
 import dataPreferences from '@ohos.data.preferences';
 import { DataStore } from '../services/DataStore';
-import { BackendSensor, ThreatItem, AnalysisReport, ModelMetrics, TrendPoint, clearAuthToken } from '../services/BackendApi';
+import { BackendSensor, ThreatItem, AnalysisReport, ModelMetrics, TrendPoint, clearAuthToken, apiGetReportTemplates, apiGenerateReport, ReportTemplate, ReportMineChoice, GeneratedReport } from '../services/BackendApi';
 import { Palette, ThemeMode, paletteFor, modeLabel, ensureThemeInit, switchThemeMode } from '../services/Theme';
 import { AccountPanel } from '../components/AccountPanel';
+import { SensorHistoryPanel } from '../components/SensorHistoryPanel';
 
 const ACCENT = '#3DDC84';
 
@@ -34,6 +35,13 @@ struct ThinkTankDashboard {
   @State showCreate: boolean = false;
   @State reportTitle: string = '';
   @State reportContent: string = '';
+  @State history: BackendSensor | null = null;
+  @State tplList: ReportTemplate[] = [];
+  @State mineList: ReportMineChoice[] = [];
+  @State selTpl: string = '';
+  @State selMine: number = 0; // 0=全部矿井
+  @State genBusy: boolean = false;
+  @State genReport: GeneratedReport | null = null;
   @StorageProp('theme_mode') themeMode: number = ThemeMode.NIGHT;
 
   aboutToAppear() {
@@ -44,6 +52,34 @@ struct ThinkTankDashboard {
       this.fresh++;
     });
     DataStore.refetch();
+    this.loadTemplates();
+  }
+
+  private async loadTemplates() {
+    try {
+      const res = await apiGetReportTemplates();
+      this.tplList = res.templates || [];
+      this.mineList = res.mines || [];
+      if (this.tplList.length > 0 && this.selTpl.length === 0) {
+        this.selTpl = this.tplList[0].key;
+      }
+    } catch (e) {
+      this.tplList = [];
+      this.mineList = [];
+    }
+  }
+
+  private async doGenerate() {
+    if (!this.selTpl || this.genBusy) return;
+    this.genBusy = true;
+    try {
+      this.genReport = await apiGenerateReport(this.selTpl, this.selMine === 0 ? null : this.selMine);
+      promptAction.showToast({ message: '报表已生成', duration: 1200 });
+    } catch (e) {
+      promptAction.showToast({ message: '报表生成失败', duration: 1500 });
+    } finally {
+      this.genBusy = false;
+    }
   }
 
   private pal(): Palette {
@@ -153,10 +189,42 @@ struct ThinkTankDashboard {
       if (this.showCreate) {
         this.CreateOverlay()
       }
+
+      // 历史趋势面板浮层（P0）
+      if (this.history) {
+        this.HistoryOverlay()
+      }
     }
     .width('100%')
     .height('100%')
     .backgroundColor(this.pal().bgApp)
+  }
+
+  // ---------------- 历史趋势面板浮层（P0) ----------------
+  @Builder
+  HistoryOverlay() {
+    if (this.history) {
+      Stack() {
+        Column()
+          .width('100%')
+          .height('100%')
+          .backgroundColor('#99000000')
+        Column() {
+          SensorHistoryPanel({
+            sensorId: this.history.id,
+            sensorName: this.history.name,
+            onClose: () => this.history = null
+          })
+        }
+        .width('92%')
+        .padding(12)
+        .backgroundColor(this.pal().bgApp)
+        .borderRadius(16)
+      }
+      .width('100%')
+      .height('100%')
+      .onClick(() => this.history = null)
+    }
   }
 
   // ---------------- 三端协同快捷入口 ----------------
@@ -221,6 +289,14 @@ struct ThinkTankDashboard {
               Text(this.valueText(s))
                 .fontSize(13)
                 .fontColor(this.dataColor(s))
+              Text('趋势')
+                .fontSize(11)
+                .fontColor(ACCENT)
+                .padding({ left: 8, right: 8, top: 4, bottom: 4 })
+                .borderRadius(10)
+                .backgroundColor(this.pal().field)
+                .margin({ left: 8 })
+                .onClick(() => this.history = s)
             }
             .width('100%')
             .padding({ top: 9, bottom: 9, left: 12, right: 12 })
@@ -375,6 +451,111 @@ struct ThinkTankDashboard {
   Reports() {
     Scroll() {
       Column() {
+        // 报表模板引擎（P2-3.6）
+        Column() {
+          Text('📑 报表模板引擎')
+            .fontSize(14)
+            .fontWeight(FontWeight.Bold)
+            .fontColor(this.pal().textMain)
+        Row() {
+          Text('模板类型')
+            .fontSize(12)
+            .fontColor(this.pal().textDim)
+        }
+        .width('100%')
+        .margin({ top: 8 })
+        .padding({ left: 2 })
+
+        Column() {
+          ForEach(this.tplList, (t: ReportTemplate) => {
+            Row() {
+              Text(this.selTpl === t.key ? '●' : '○')
+                .fontSize(13)
+                .fontColor(this.selTpl === t.key ? ACCENT : this.pal().textDim)
+                .margin({ right: 8 })
+              Column() {
+                Text(t.name)
+                  .fontSize(13)
+                  .fontWeight(FontWeight.Medium)
+                  .fontColor(this.pal().textMain)
+                Text(t.desc)
+                  .fontSize(10)
+                  .fontColor(this.pal().textDim)
+                  .margin({ top: 2 })
+              }
+              .alignItems(HorizontalAlign.Start)
+              .layoutWeight(1)
+            }
+            .width('100%')
+            .padding({ top: 8, bottom: 8 })
+            .borderRadius(10)
+            .onClick(() => this.selTpl = t.key)
+          })
+        }
+        .width('100%')
+        .padding(12)
+        .backgroundColor(this.pal().card)
+        .borderRadius(12)
+        .margin({ top: 6 })
+
+        Row() {
+          Text('矿井范围')
+            .fontSize(12)
+            .fontColor(this.pal().textDim)
+        }
+        .width('100%')
+        .margin({ top: 10 })
+        .padding({ left: 2 })
+
+        Row() {
+          Row() {
+            Text(this.selMine === 0 ? '●' : '○')
+              .fontSize(12)
+              .fontColor(this.selMine === 0 ? ACCENT : this.pal().textDim)
+            Text('全部矿井')
+              .fontSize(12)
+              .fontColor(this.pal().textMain)
+              .margin({ left: 5 })
+          }
+          .padding({ left: 12, right: 12, top: 8, bottom: 8 })
+          .borderRadius(18)
+          .backgroundColor(this.selMine === 0 ? this.pal().accentSoft : this.pal().field)
+          .onClick(() => this.selMine = 0)
+          ForEach(this.mineList, (m: ReportMineChoice) => {
+            Row() {
+              Text(this.selMine === m.id ? '●' : '○')
+                .fontSize(12)
+                .fontColor(this.selMine === m.id ? ACCENT : this.pal().textDim)
+              Text(this.shortMine(m.name))
+                .fontSize(12)
+                .fontColor(this.pal().textMain)
+                .margin({ left: 5 })
+            }
+            .padding({ left: 12, right: 12, top: 8, bottom: 8 })
+            .borderRadius(18)
+            .backgroundColor(this.selMine === m.id ? this.pal().accentSoft : this.pal().field)
+            .margin({ left: 6 })
+            .onClick(() => this.selMine = m.id)
+          })
+        }
+        .width('100%')
+        .margin({ top: 6 })
+
+        Button(this.genBusy ? '生成中...' : '生成报表')
+          .width('100%')
+          .height(44)
+          .backgroundColor(ACCENT)
+          .fontColor(this.pal().textMain)
+          .fontWeight(FontWeight.Medium)
+          .borderRadius(22)
+          .margin({ top: 14 })
+          .enabled(this.selTpl.length > 0 && !this.genBusy)
+          .onClick(() => this.doGenerate())
+
+        if (this.genReport) {
+          this.GenReportCard(this.genReport)
+        }
+
         Row() {
           Text('新建研究报告')
             .fontSize(13)
@@ -391,6 +572,7 @@ struct ThinkTankDashboard {
         }
         .width('100%')
         .justifyContent(FlexAlign.End)
+        .margin({ top: 16 })
 
         Column() {
           ForEach(DataStore.getReports(), (r: AnalysisReport) => {
@@ -405,7 +587,60 @@ struct ThinkTankDashboard {
     }
     .width('100%')
     .height('100%')
+  }
+    .width('100%')
+    .height('100%')
     .scrollBar(BarState.Off)
+  }
+
+  @Builder
+  GenReportCard(r: GeneratedReport) {
+    Column() {
+      Row() {
+        Text('✅ 已生成：' + r.title)
+          .fontSize(14)
+          .fontWeight(FontWeight.Bold)
+          .fontColor(ACCENT)
+      }
+      .width('100%')
+      .margin({ bottom: 8 })
+
+      Row() {
+        Text('传感器 ' + r.overview.sensorCount + '｜在线 ' + r.overview.online)
+          .fontSize(12)
+          .fontColor(this.pal().textMain)
+        Blank()
+        Text('预警 ' + r.alertSummary.total + '｜未处置 ' + r.alertSummary.unhandled)
+          .fontSize(12)
+          .fontColor(this.pal().textMain)
+      }
+      .width('100%')
+
+      Row() {
+        Text('黄 ' + r.alertSummary.byLevel.YELLOW)
+          .fontSize(11)
+          .fontColor(this.pal().textDim)
+        Text('橙 ' + r.alertSummary.byLevel.ORANGE)
+          .fontSize(11)
+          .fontColor(this.pal().textDim)
+          .margin({ left: 14 })
+        Text('红 ' + r.alertSummary.byLevel.RED)
+          .fontSize(11)
+          .fontColor('#E5484D')
+          .margin({ left: 14 })
+        Blank()
+        Text(this.fmtTime(r.createdAt))
+          .fontSize(11)
+          .fontColor(this.pal().textDim)
+      }
+      .width('100%')
+      .margin({ top: 6 })
+    }
+    .width('100%')
+    .padding(14)
+    .backgroundColor(this.pal().card)
+    .borderRadius(14)
+    .margin({ top: 12 })
   }
 
   @Builder
@@ -681,6 +916,13 @@ struct ThinkTankDashboard {
   private fmtTime(ts: string): string {
     if (!ts) return '--';
     return ts.replace('T', ' ').split('.')[0];
+  }
+
+  private shortMine(name: string): string {
+    if (name.indexOf('青岛') >= 0) return '青岛矿井';
+    if (name.indexOf('朔州') >= 0) return '朔州矿井';
+    if (name.indexOf('鄂尔多斯') >= 0) return '鄂尔多斯矿';
+    return name.length > 6 ? name.slice(0, 6) + '…' : name;
   }
 
   private iconOf(type: string): string {

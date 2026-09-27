@@ -7,6 +7,8 @@ router.get('/all', sensorController.getAllSensors);
 router.get('/stats', sensorController.getStats);
 router.get('/thresholds', sensorController.getThresholds);
 router.get('/type/:type', sensorController.getSensorsByType);
+// 历史趋势：/sensor/:id/history?from&to&interval（P0）
+router.get('/:id/history', sensorController.getHistory);
 router.get('/:id', sensorController.getSensorById);
 // 实时数据写入：可被数据采集/模拟器推送，保持登录鉴权
 router.post('/update', sensorController.updateSensorData);

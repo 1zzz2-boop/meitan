@@ -1,0 +1,156 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="900" viewBox="0 0 1400 900">
+<style>
+text{font-family:"Microsoft YaHei",SimHei,sans-serif}
+.t-name{font-size:22px;font-weight:bold;fill:#FFFFFF}
+.t-main{font-size:20px;font-weight:bold;fill:#23272B}
+.t-mainw{font-size:20px;font-weight:bold;fill:#FFFFFF}
+.t-sub{font-size:17px;fill:#5A6169}
+.t-subw{font-size:17px;fill:#FFFFFF}
+.t-note{font-size:16px;fill:#5A6169}
+.t-subl{font-size:15px;fill:#5A6169}
+.t-sublw{font-size:15px;fill:#FFFFFF}
+.t-pill{font-size:18px;font-weight:bold;fill:#FFFFFF}
+.t-box{font-size:18px;font-weight:bold;fill:#23272B}
+.t-sec{font-size:17px;fill:#5A6169}
+.t-secw{font-size:17px;fill:#FFFFFF}
+.t-lab{font-size:17px;fill:#23272B}
+.t-line{stroke:#E8761F;stroke-width:2.5;fill:none}
+.t-back{stroke:#5A6169;stroke-width:2;stroke-dasharray:8 6;fill:none}
+</style>
+<defs>
+<marker id="arw" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><polygon points="0,0 10,4 0,8" fill="#E8761F"/></marker>
+<marker id="arwg" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><polygon points="0,0 10,4 0,8" fill="#5A6169"/></marker>
+</defs>
+<rect x="0" y="0" width="1400" height="900" fill="#FFFFFF"/>
+
+<!-- ================= VR / 大屏层 ================= -->
+<rect x="40" y="36" width="1140" height="170" rx="8" fill="#F5F6F7" stroke="#C9CED3" stroke-width="2"/>
+<rect x="52" y="48" width="64" height="146" rx="8" fill="#2E3236"/>
+<text class="t-name" x="0" y="0" transform="translate(84,121) rotate(-90)" text-anchor="middle">VR/大屏层</text>
+
+<rect x="140" y="78" width="176" height="86" rx="6" fill="#EDEFF1" stroke="#C9CED3" stroke-width="2"/>
+<text class="t-main" x="228" y="108" text-anchor="middle">六图层云图</text>
+<text class="t-sub" x="228" y="136" text-anchor="middle">多源态势叠加</text>
+
+<rect x="352" y="78" width="176" height="86" rx="6" fill="#EDEFF1" stroke="#C9CED3" stroke-width="2"/>
+<text class="t-main" x="440" y="108" text-anchor="middle">三维巷道</text>
+<text class="t-sub" x="440" y="136" text-anchor="middle">数字孪生复现</text>
+
+<rect x="564" y="78" width="176" height="86" rx="6" fill="#EDEFF1" stroke="#C9CED3" stroke-width="2"/>
+<text class="t-main" x="652" y="108" text-anchor="middle">时间轴回放</text>
+<text class="t-sub" x="652" y="136" text-anchor="middle">历史工况回溯</text>
+
+<rect x="776" y="78" width="176" height="86" rx="6" fill="#EDEFF1" stroke="#C9CED3" stroke-width="2"/>
+<text class="t-main" x="864" y="108" text-anchor="middle">应急方案推演</text>
+<text class="t-sub" x="864" y="136" text-anchor="middle">情景模拟预演</text>
+
+<rect x="988" y="78" width="176" height="86" rx="6" fill="#EDEFF1" stroke="#C9CED3" stroke-width="2"/>
+<text class="t-main" x="1076" y="108" text-anchor="middle">多端一致呈现</text>
+<text class="t-sub" x="1076" y="136" text-anchor="middle">PC·大屏·移动</text>
+
+<!-- ================= 软件层 ================= -->
+<rect x="40" y="256" width="1140" height="250" rx="8" fill="#F5F6F7" stroke="#C9CED3" stroke-width="2"/>
+<rect x="52" y="268" width="64" height="226" rx="8" fill="#2E3236"/>
+<text class="t-name" x="0" y="0" transform="translate(84,381) rotate(-90)" text-anchor="middle">软件层</text>
+
+<rect x="140" y="284" width="300" height="72" rx="6" fill="#EDEFF1" stroke="#C9CED3" stroke-width="2"/>
+<text class="t-main" x="290" y="314" text-anchor="middle">数据接入治理</text>
+<text class="t-sub" x="290" y="340" text-anchor="middle">清洗 · 对齐 · 入库</text>
+
+<rect x="502" y="284" width="300" height="72" rx="6" fill="#EDEFF1" stroke="#C9CED3" stroke-width="2"/>
+<text class="t-main" x="652" y="314" text-anchor="middle">13 维特征</text>
+<text class="t-sub" x="652" y="340" text-anchor="middle">时序 · 耦合特征</text>
+
+<rect x="864" y="284" width="300" height="72" rx="6" fill="#E8761F" stroke="#B8560F" stroke-width="2"/>
+<text class="t-mainw" x="1014" y="314" text-anchor="middle">MCFLR 模型</text>
+<text class="t-subw" x="1014" y="340" text-anchor="middle">多参量模糊逻辑</text>
+
+<path class="t-line" d="M 444 320 L 494 320" marker-end="url(#arw)"/>
+<path class="t-line" d="M 806 320 L 856 320" marker-end="url(#arw)"/>
+<path class="t-line" d="M 1014 358 L 1014 386" marker-end="url(#arw)"/>
+
+<rect x="864" y="390" width="300" height="72" rx="6" fill="#EDEFF1" stroke="#C9CED3" stroke-width="2"/>
+<text class="t-main" x="1014" y="420" text-anchor="middle">四级分级</text>
+<text class="t-sub" x="1014" y="446" text-anchor="middle">蓝 · 黄 · 橙 · 红</text>
+
+<rect x="502" y="390" width="300" height="72" rx="6" fill="#EDEFF1" stroke="#C9CED3" stroke-width="2"/>
+<text class="t-main" x="652" y="420" text-anchor="middle">预警升级督办</text>
+<text class="t-sub" x="652" y="446" text-anchor="middle">工单闭环 · 考核</text>
+
+<rect x="140" y="390" width="300" height="72" rx="6" fill="#EDEFF1" stroke="#C9CED3" stroke-width="2"/>
+<text class="t-main" x="290" y="420" text-anchor="middle">报表 / 权限 / 审计</text>
+<text class="t-sub" x="290" y="446" text-anchor="middle">PG·Redis·WS 广播</text>
+
+<path class="t-line" d="M 856 426 L 806 426" marker-end="url(#arw)"/>
+<path class="t-line" d="M 494 426 L 444 426" marker-end="url(#arw)"/>
+
+<text class="t-note" x="652" y="490" text-anchor="middle">后端支撑：PostgreSQL 时序库 + Redis 缓存 + WebSocket 广播</text>
+
+<!-- ================= 硬件层 ================= -->
+<rect x="40" y="556" width="1140" height="230" rx="8" fill="#F5F6F7" stroke="#C9CED3" stroke-width="2"/>
+<rect x="52" y="568" width="64" height="206" rx="8" fill="#2E3236"/>
+<text class="t-name" x="0" y="0" transform="translate(84,671) rotate(-90)" text-anchor="middle">硬件层</text>
+
+<rect x="140" y="584" width="176" height="86" rx="6" fill="#EDEFF1" stroke="#C9CED3" stroke-width="2"/>
+<text class="t-main" x="228" y="614" text-anchor="middle">五类参量</text>
+<text class="t-subl" x="228" y="638" text-anchor="middle">压力·位移·载荷</text>
+<text class="t-subl" x="228" y="656" text-anchor="middle">水压·气体·温湿度</text>
+
+<rect x="352" y="584" width="176" height="86" rx="6" fill="#EDEFF1" stroke="#C9CED3" stroke-width="2"/>
+<text class="t-main" x="440" y="614" text-anchor="middle">STM32 采集</text>
+<text class="t-sub" x="440" y="642" text-anchor="middle">七路同步采样</text>
+
+<rect x="564" y="584" width="176" height="86" rx="6" fill="#EDEFF1" stroke="#C9CED3" stroke-width="2"/>
+<text class="t-main" x="652" y="614" text-anchor="middle">RS485 汇聚</text>
+<text class="t-sub" x="652" y="642" text-anchor="middle">总线就地组网</text>
+
+<rect x="776" y="584" width="176" height="86" rx="6" fill="#E8761F" stroke="#B8560F" stroke-width="2"/>
+<text class="t-mainw" x="864" y="614" text-anchor="middle">边缘网关</text>
+<text class="t-subw" x="864" y="642" text-anchor="middle">LoRa Mesh 组网</text>
+
+<rect x="988" y="584" width="176" height="86" rx="6" fill="#EDEFF1" stroke="#C9CED3" stroke-width="2"/>
+<text class="t-main" x="1076" y="614" text-anchor="middle">双通道回传</text>
+<text class="t-sub" x="1076" y="642" text-anchor="middle">MQTT / UDP</text>
+
+<path class="t-line" d="M 320 627 L 348 627" marker-end="url(#arw)"/>
+<path class="t-line" d="M 532 627 L 560 627" marker-end="url(#arw)"/>
+<path class="t-line" d="M 744 627 L 772 627" marker-end="url(#arw)"/>
+<path class="t-line" d="M 956 627 L 984 627" marker-end="url(#arw)"/>
+
+<rect x="352" y="696" width="600" height="64" rx="6" fill="#EDEFF1" stroke="#C9CED3" stroke-width="2"/>
+<text class="t-sec" x="652" y="736" text-anchor="middle">执行侧：OLED 就地显示 · 声光告警 · 阈值热更新</text>
+<path class="t-back" d="M 652 672 L 652 692" marker-end="url(#arwg)"/>
+
+<!-- ================= 层间上行箭头 ================= -->
+<path class="t-line" d="M 250 252 L 250 212" marker-end="url(#arw)"/>
+<path class="t-line" d="M 652 252 L 652 212" marker-end="url(#arw)"/>
+<path class="t-line" d="M 1050 252 L 1050 212" marker-end="url(#arw)"/>
+<path class="t-line" d="M 250 552 L 250 512" marker-end="url(#arw)"/>
+<path class="t-line" d="M 652 552 L 652 512" marker-end="url(#arw)"/>
+<path class="t-line" d="M 1050 552 L 1050 512" marker-end="url(#arw)"/>
+
+<!-- ================= 闭环环带 ================= -->
+<path class="t-line" d="M 200 788 L 200 848 L 1000 848 L 1000 792" marker-end="url(#arw)"/>
+<rect x="260" y="828" width="100" height="40" rx="6" fill="#2E3236"/>
+<text class="t-pill" x="310" y="855" text-anchor="middle">感知</text>
+<rect x="460" y="828" width="100" height="40" rx="6" fill="#2E3236"/>
+<text class="t-pill" x="510" y="855" text-anchor="middle">计算</text>
+<rect x="660" y="828" width="100" height="40" rx="6" fill="#2E3236"/>
+<text class="t-pill" x="710" y="855" text-anchor="middle">决策</text>
+<rect x="860" y="828" width="100" height="40" rx="6" fill="#2E3236"/>
+<text class="t-pill" x="910" y="855" text-anchor="middle">反馈</text>
+<path class="t-line" d="M 364 848 L 452 848" marker-end="url(#arw)"/>
+<path class="t-line" d="M 564 848 L 652 848" marker-end="url(#arw)"/>
+<path class="t-line" d="M 764 848 L 852 848" marker-end="url(#arw)"/>
+
+<!-- ================= 三级协同 ================= -->
+<rect x="1040" y="806" width="320" height="74" rx="8" fill="#F5F6F7" stroke="#C9CED3" stroke-width="2"/>
+<text class="t-box" x="1200" y="836" text-anchor="middle">三级协同</text>
+<text class="t-sec" x="1200" y="862" text-anchor="middle">企业端 · 智库端 · 监管端</text>
+
+<!-- ================= 纵向接口 ================= -->
+<path class="t-line" d="M 1224 782 L 1224 48" marker-end="url(#arw)"/>
+<path class="t-back" d="M 1338 48 L 1338 780" marker-end="url(#arwg)"/>
+<text class="t-sec" x="0" y="0" transform="translate(1252,413) rotate(-90)" text-anchor="middle">上行：统一主题与报文规范</text>
+<text class="t-sec" x="0" y="0" transform="translate(1312,413) rotate(-90)" text-anchor="middle">下行：/cmd、/thr、/status</text>
+</svg>

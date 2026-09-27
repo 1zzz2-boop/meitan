@@ -4,19 +4,20 @@ const { query, queryOne } = require('../config/database');
  * 预警服务（PostgreSQL）
  */
 const alertService = {
+    // 统一返回的预警字段（含升级状态机相关列）
+    SELECT_COLUMNS:
+        `id, sensor_id, sensor_name, level, message, value, threshold,
+         handled, handler, handled_at, mine_id, raised_count, escalated_at, escalation_note, created_at`,
+
     async getAllAlerts() {
         return await query(
-            `SELECT id, sensor_id, sensor_name, level, message, value, threshold,
-                    handled, handler, handled_at, mine_id, created_at
-             FROM alerts ORDER BY created_at DESC`
+            `SELECT ${this.SELECT_COLUMNS} FROM alerts ORDER BY created_at DESC`
         );
     },
 
     async getUnhandledAlerts() {
         return await query(
-            `SELECT id, sensor_id, sensor_name, level, message, value, threshold,
-                    handled, handler, handled_at, mine_id, created_at
-             FROM alerts WHERE handled = FALSE ORDER BY created_at DESC`
+            `SELECT ${this.SELECT_COLUMNS} FROM alerts WHERE handled = FALSE ORDER BY created_at DESC`
         );
     },
 
@@ -29,8 +30,7 @@ const alertService = {
         const rows = await query(
             `UPDATE alerts SET handled = TRUE, handler = $2, handled_at = now()
              WHERE id = $1
-             RETURNING id, sensor_id, sensor_name, level, message, value, threshold,
-                       handled, handler, handled_at, mine_id, created_at`,
+             RETURNING ${this.SELECT_COLUMNS}`,
             [alertId, handledBy || 'system']
         );
         return rows[0] || null;
@@ -43,10 +43,9 @@ const alertService = {
 
     async createAlert(data) {
         const rows = await query(
-            `INSERT INTO alerts (id, sensor_id, sensor_name, level, message, value, threshold, mine_id)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-             RETURNING id, sensor_id, sensor_name, level, message, value, threshold,
-                       handled, handler, handled_at, mine_id, created_at`,
+            `INSERT INTO alerts (id, sensor_id, sensor_name, level, message, value, threshold, mine_id, escalated_at)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, now())
+             RETURNING ${this.SELECT_COLUMNS}`,
             [data.id, data.sensor_id, data.sensor_name, data.level, data.message,
              data.value, data.threshold, data.mine_id || 1]
         );

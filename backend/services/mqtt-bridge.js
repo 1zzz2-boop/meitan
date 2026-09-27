@@ -1,4 +1,4 @@
-﻿/**
+/**
  * MQTT 桥接服务
  * 订阅井下 MQTT 数据（sensor/<sensorId>/data），写入数据库并实时广播到所有端（PC/鸿蒙）。
  * 
@@ -19,6 +19,7 @@ const path = require('path');
 const sensorService = require('./sensor.service');
 const wsHub = require('../utils/wsHub');
 const { query } = require('../config/database');
+const { parsePayload } = require('../utils/payload-parser');
 
 const URL = process.env.MQTT_URL || 'tcp://localhost:1883';
 const TOPIC = process.env.MQTT_TOPIC || 'sensor/+/data';
@@ -44,28 +45,15 @@ let startedAt = null;
 let msgCount = 0;
 
 /** 解析 MQTT 载荷 → { sensorId, value } | null */
-function parsePayload(topic, payloadStr) {
+function parsePayloadMsg(topic, payloadStr) {
   const m = TOPIC === 'sensor/+/data' ? /^sensor\/([^/]+)\/data$/.exec(topic) : null;
   const topicSensorId = m ? m[1] : null;
-  const body = String(payloadStr).trim();
-  // 纯数值
-  if (/^[-+]?(\d+\.?\d*|\.\d+)$/.test(body)) {
-    return { sensorId: topicSensorId, value: parseFloat(body) };
-  }
-  // JSON
-  try {
-    const o = JSON.parse(body);
-    const value = parseFloat(o.value);
-    if (Number.isNaN(value)) return null;
-    return { sensorId: (o.sensorId || o.sensor_id || topicSensorId), value };
-  } catch (e) {
-    return null;
-  }
+  return parsePayload(payloadStr, topicSensorId);
 }
 
 /** 校验传感器存在后写值 + 记历史 + 广播。返回是否成功。 */
 async function ingest(topic, payloadStr) {
-  const msg = parsePayload(topic, payloadStr);
+  const msg = parsePayloadMsg(topic, payloadStr);
   if (!msg || !msg.sensorId || Number.isNaN(msg.value)) {
     console.warn('[mqtt] 忽略无法解析的消息', topic, payloadStr);
     return false;
@@ -75,17 +63,17 @@ async function ingest(topic, payloadStr) {
     console.warn(`[mqtt] 传感器不存在，跳过: ${msg.sensorId}`);
     return false;
   }
-  // 记入历史，供趋势曲线使用
+  // 记入历史，供趋势曲线使用；标记来源为 MQTT（数据来源溯源 P0）
   try {
     await query(
-      `INSERT INTO sensor_history (sensor_id, value) VALUES ($1, $2)`,
-      [msg.sensorId, msg.value]
+      `INSERT INTO sensor_history (sensor_id, value, source, source_addr) VALUES ($1, $2, 'mqtt', $3)`,
+      [msg.sensorId, msg.value, URL]
     );
   } catch (e) {
     console.warn('[mqtt] 写入历史失败:', e.message);
   }
   msgCount += 1;
-  wsHub.emit('sensor_update', updated);
+  wsHub.emit('sensor_update', { ...updated, source: 'mqtt', source_addr: URL });
   wsHub.emit('sensor_stats', await sensorService.getStats().catch(() => null));
   return true;
 }
@@ -138,4 +126,4 @@ function status() {
   };
 }
 
-module.exports = { start, stop, status, ingest, parsePayload };
+module.exports = { start, stop, status, ingest, parsePayload: parsePayloadMsg };

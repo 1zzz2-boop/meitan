@@ -3,151 +3,231 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>深地智控 · 三端入口 | 煤矿顶板灾变智能预警与可视化决策系统</title>
+<title>深地智控 · 统一登录 | 煤矿顶板灾变智能预警与可视化决策系统</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="assets/style.css?v=20260915">
 </head>
 <body>
 <div class="app-bg"></div>
 
-<!-- ====================== 三端入口 ====================== -->
-<div class="portal-wrap" id="portalView">
-  <div class="portal-top">
-    <div class="pt-brand">
-      <div class="pt-mark" id="brandMark">⛏️</div>
-      <div><h1>深地智控 · 煤矿顶板智能预警平台</h1><p>DEEP-SEAM ROOF GUARD · 三端协同可视化管控平台</p></div>
+<!-- ====================== 统一登录：左场景 + 右登录 ====================== -->
+<div class="ls-wrap">
+
+  <!-- ===== 左侧：矿车进入矿道 ===== -->
+  <div class="ls-scene">
+    <div class="ls-top">
+      <div class="ls-brand">
+        <div class="pt-mark" id="brandMark">⛏️</div>
+        <div>
+          <h1>深地智控 · 煤矿顶板智能预警平台</h1>
+          <p>DEEP-SEAM ROOF GUARD · 三端协同可视化决策系统</p>
+        </div>
+      </div>
+      <div class="ls-status">
+        <div class="h-chip"><span class="led" id="connLed"></span><span id="connText">正在连接后端...</span></div>
+        <div class="h-clock" id="clock">--:--:--</div>
+      </div>
     </div>
-    <div class="h-right">
-      <div class="h-chip"><span class="led gray" id="connLed"></span><span id="connText">正在连接后端...</span></div>
-      <div class="h-sep"></div>
-      <div class="h-clock" id="clock">--:--:--</div>
+
+    <!-- 场景主区：矿车驶入矿道 -->
+    <div class="ls-stage">
+      <div class="ls-stitle">
+        <span class="tag">主运输巷 · K2+180</span>
+        <b>矿车运输作业 · 实时画面</b>
+        <span class="tag">MQTT / WS 数据链路</span>
+      </div>
+
+      <div class="ls-scene-svg">
+        <svg viewBox="0 0 900 500" preserveAspectRatio="xMidYMid meet">
+          <!-- 岩层背景 -->
+          <rect x="0" y="0" width="900" height="500" fill="#252a31"/>
+          <rect x="0" y="0" width="900" height="88" fill="#2c2720"/>
+          <rect x="0" y="88" width="900" height="92" fill="#33302b"/>
+          <g stroke="rgba(255,255,255,.05)" stroke-width="1">
+            <line x1="0" y1="88" x2="900" y2="88"/>
+            <line x1="0" y1="180" x2="900" y2="180"/>
+            <line x1="0" y1="42" x2="900" y2="42"/>
+            <line x1="0" y1="132" x2="900" y2="132"/>
+          </g>
+          <text x="16" y="52" font-size="11" fill="#98a2b3" opacity=".45" font-family="var(--mono)">覆岩层</text>
+          <text x="16" y="150" font-size="11" fill="#98a2b3" opacity=".45" font-family="var(--mono)">砂岩层</text>
+
+          <!-- 巷道（拱形通道，贯穿画面） -->
+          <path d="M60 470 L60 320 Q60 210 200 210 L700 210 Q840 210 840 320 L840 470 Z" fill="#0b0e13" stroke="#39424f" stroke-width="1.5"/>
+          <!-- 支护架 x3 -->
+          <g fill="none" stroke="#2e3946" stroke-width="6" stroke-linecap="round">
+            <path d="M190 470 L190 340 Q190 235 280 235 Q370 235 370 340 L370 470"/>
+            <path d="M440 470 L440 340 Q440 235 530 235 Q620 235 620 340 L620 470"/>
+            <path d="M690 470 L690 340 Q690 235 780 235 Q870 235 870 340 L870 470"/>
+          </g>
+          <!-- 巷道内壁氛围线 -->
+          <g stroke="rgba(88,166,160,.1)" stroke-width="1">
+            <line x1="120" y1="262" x2="780" y2="262"/>
+            <line x1="120" y1="304" x2="780" y2="304"/>
+          </g>
+
+          <!-- 轨道与枕木 -->
+          <rect x="80" y="386" width="740" height="16" rx="3" fill="#1e242c"/>
+          <line x1="80" x2="820" y1="378" y2="378" stroke="#4a5563" stroke-width="1.5"/>
+          <line x1="80" x2="820" y1="382" y2="382" stroke="#3a4350" stroke-width="3"/>
+          <g stroke="#3d4754" stroke-width="3">
+            <line x1="110" y1="372" x2="110" y2="390"/>
+            <line x1="160" y1="372" x2="160" y2="390"/>
+            <line x1="210" y1="372" x2="210" y2="390"/>
+            <line x1="260" y1="372" x2="260" y2="390"/>
+            <line x1="310" y1="372" x2="310" y2="390"/>
+            <line x1="360" y1="372" x2="360" y2="390"/>
+            <line x1="410" y1="372" x2="410" y2="390"/>
+            <line x1="460" y1="372" x2="460" y2="390"/>
+            <line x1="510" y1="372" x2="510" y2="390"/>
+            <line x1="560" y1="372" x2="560" y2="390"/>
+            <line x1="610" y1="372" x2="610" y2="390"/>
+            <line x1="660" y1="372" x2="660" y2="390"/>
+            <line x1="710" y1="372" x2="710" y2="390"/>
+            <line x1="760" y1="372" x2="760" y2="390"/>
+          </g>
+
+          <!-- 矿车（从右向左驶入矿道，轮轴心 y=366） -->
+          <g class="cart-move">
+            <!-- 前灯（车头朝左）+ 光锥 -->
+            <circle cx="-86" cy="-46" r="5" fill="#ffd9a0" opacity=".9"/>
+            <polygon points="-80,-52 -150,-78 -150,-16" fill="rgba(255,190,110,.10)"/>
+            <!-- 车身翻斗 -->
+            <path d="M-72 -28 L-58 -62 L52 -62 L66 -28 Z" fill="#3a4350" stroke="#48535f" stroke-width="1.5"/>
+            <line x1="-58" y1="-62" x2="52" y2="-62" stroke="#4d5a68" stroke-width="2"/>
+            <!-- 矿石堆 -->
+            <path d="M-52 -62 L-50 -80 L-28 -78 L-16 -92 L6 -84 L22 -96 L44 -80 L52 -62 Z" fill="#5c6675"/>
+            <path d="M-20 -80 L-8 -70 L4 -78 Z" fill="#6d7887" opacity=".7"/>
+            <!-- 车架 -->
+            <line x1="-66" y1="-28" x2="-40" y2="-8" stroke="#39424f" stroke-width="4"/>
+            <line x1="66" y1="-28" x2="40" y2="-8" stroke="#39424f" stroke-width="4"/>
+            <!-- 前轮（左，逆时针转动） -->
+            <circle cx="-38" cy="0" r="16" fill="#161c24" stroke="#3d4754" stroke-width="2.5"/>
+            <g class="cart-wheel">
+              <line x1="-38" y1="-12" x2="-38" y2="12" stroke="#39424f" stroke-width="2"/>
+              <line x1="-50" y1="0" x2="-26" y2="0" stroke="#39424f" stroke-width="2"/>
+            </g>
+            <circle cx="-38" cy="0" r="3.5" fill="#4d5a68"/>
+            <!-- 后轮（右） -->
+            <circle cx="38" cy="0" r="16" fill="#161c24" stroke="#3d4754" stroke-width="2.5"/>
+            <g class="cart-wheel">
+              <line x1="38" y1="-12" x2="38" y2="12" stroke="#39424f" stroke-width="2"/>
+              <line x1="26" y1="0" x2="50" y2="0" stroke="#39424f" stroke-width="2"/>
+            </g>
+            <circle cx="38" cy="0" r="3.5" fill="#4d5a68"/>
+          </g>
+        </svg>
+      </div>
+    </div>
+
+    <div class="ls-foot">
+      <span class="led"></span>系统运行正常
+      <span class="sep">|</span>设备在线 24 / 24
+      <span class="sep">|</span>数据链路 MQTT + WebSocket
     </div>
   </div>
 
-  <div class="portal-main">
-    <div class="portal-title">
-      <h2>「三端」协同可视化管控</h2>
-      <p>企业端 · 生产矿井 &nbsp;/&nbsp; 智库端 · 高校科研机构 &nbsp;/&nbsp; 监管端 · 集团 / 安监部门</p>
-    </div>
+  <!-- ===== 右侧：统一登录（三模式切换） ===== -->
+  <div class="ls-login">
+    <div class="login-card ls-card">
 
-    <div class="portal-grid">
-      <div class="portal-card p-ent" data-target="enterprise.html">
-        <div class="p-ico">🏭</div>
-        <div class="p-name">企业端</div>
-        <div class="p-sub">生产矿井 · 现场管控中心</div>
-        <div class="p-list">
-          <div>· 实时监测：<b>应力场 / 位移场透明化感知</b></div>
-          <div>· 预警处置：<b>三级预警分级响应</b></div>
-          <div>· 数字孪生：<b>巷道三维可视化场景</b></div>
-          <div>· 系统设置：<b>多参数阈值动态配置</b></div>
-        </div>
-        <div class="p-go" data-target="enterprise.html">进入企业端 →</div>
+      <!-- 三端模式切换 -->
+      <div class="mode-tabs" id="modeTabs">
+        <button class="mode-tab active" data-mode="enterprise" type="button"><span class="mt-dot"></span>企业端</button>
+        <button class="mode-tab" data-mode="thinktank" type="button"><span class="mt-dot"></span>智库端</button>
+        <button class="mode-tab" data-mode="supervision" type="button"><span class="mt-dot"></span>监管端</button>
       </div>
 
-      <div class="portal-card p-think" data-target="thinktank.html">
-        <div class="p-ico">🎓</div>
-        <div class="p-name">智库端</div>
-        <div class="p-sub">大学 / 科研机构 · 技术研发中心</div>
-        <div class="p-list">
-          <div>· 数据集：<b>多源监测历史数据接入</b></div>
-          <div>· 分析研究：<b>趋势 / 威胁度关联分析</b></div>
-          <div>· 模型指标：<b>数字孪生 AI 预警模型</b></div>
-          <div>· 报告导出：<b>分析研究结论报告</b></div>
+      <div class="ls-logo" id="lgLogo">
+        <div class="mark" id="lgIco"></div>
+        <div>
+          <h1 id="lgName">企业端 · 统一登录</h1>
+          <p id="lgSub">生产矿井 · 现场管控中心</p>
         </div>
-        <div class="p-go" data-target="thinktank.html">进入智库端 →</div>
       </div>
 
-      <div class="portal-card p-sup" data-target="supervision.html">
-        <div class="p-ico">🏛️</div>
-        <div class="p-name">监管端</div>
-        <div class="p-sub">集团 / 安监部门 · 远程管理中心</div>
-        <div class="p-list">
-          <div>· 多矿井总览：<b>远程集中监控</b></div>
-          <div>· 监管预警：<b>跨矿井预警态势</b></div>
-          <div>· 应急调度：<b>远程协同调度指令</b></div>
-          <div>· 监管报告：<b>安全生产监管报告</b></div>
+      <div class="field">
+        <label>账号</label>
+        <input id="lgUser" type="text" placeholder="请输入账号" autocomplete="username">
+      </div>
+      <div class="field">
+        <label>密码</label>
+        <input id="lgPass" type="password" placeholder="请输入密码" autocomplete="current-password" style="margin-bottom:2px">
+      </div>
+      <div class="field">
+        <label>验证码</label>
+        <div style="display:flex;align-items:center;gap:8px">
+          <input id="lgCap" type="text" maxlength="4" placeholder="请输入验证码" autocomplete="off" style="flex:1;letter-spacing:3px" onkeydown="if(event.key==='Enter')doLogin()">
+          <button type="button" id="lgCapBox" onclick="refreshCaptcha()" title="点击刷新验证码"
+            style="min-width:92px;height:44px;border:1px dashed rgba(255,255,255,.35);border-radius:6px;background:rgba(255,255,255,.05);color:var(--mint,#6fd0a8);font-family:'IBM Plex Mono';font-weight:700;font-size:18px;letter-spacing:4px;cursor:pointer">加载中</button>
         </div>
-        <div class="p-go" data-target="supervision.html">进入监管端 →</div>
+      </div>
+
+      <div class="login-hint" id="lgHint">企业端演示账号：admin / mine_super · 密码 123456</div>
+
+      <button class="btn-login" id="lgBtn" onclick="doLogin()">进入企业端监测系统 →</button>
+
+      <div class="ls-more">
+        <span>三端账号统一鉴权 · 登录后按角色进入对应门户</span>
       </div>
     </div>
   </div>
-
-  <div class="portal-foot">深地智控 · 基于数字孪生的煤矿顶板灾变智能预警与可视化决策系统 &nbsp;·&nbsp; 实时数据通道 ws://localhost:8080</div>
 </div>
 
-<!-- ====================== 登录弹窗 ====================== -->
-<div class="modal-mask" id="modalMask">
-  <div class="modal" id="modalBox" style="width:420px"></div>
-</div>
 <div class="toast" id="toast"></div>
 
-<script src="assets/app.js?v=20260914"></script>
+<script src="assets/app.js?v=20260924"></script>
 <script>
-/* 统一图标：入口品牌与卡片 emoji → SVG */
+/* 品牌图标 */
 (function () {
   const mark = $('#brandMark');
-  if (mark) mark.innerHTML = ico('pick', 22);
-  [
-    ['.portal-card.p-ent .p-ico', 'mine', 32],
-    ['.portal-card.p-think .p-ico', 'cap', 32],
-    ['.portal-card.p-sup .p-ico', 'gov', 32]
-  ].forEach(([sel, name, size]) => {
-    const el = $(sel);
-    if (el) el.innerHTML = ico(name, size);
-  });
+  if (mark) mark.innerHTML = ico('pick', 24);
 })();
 
-/* 卡片点击 → 登录后进入目标门户 */
-document.querySelectorAll('[data-target]').forEach((el) => {
-  el.addEventListener('click', (e) => {
-    const t = e.target.closest('[data-target]');
-    if (!t) return;
-    openLogin(t.dataset.target);
-  });
-});
+/* ==================== 三模式切换（企业 / 智库 / 监管） ==================== */
+const MODES = {
+  enterprise: {
+    ico: 'mine', name: '企业端', sub: '生产矿井 · 现场管控中心',
+    btn: '进入企业端监测系统 →',
+    hint: '企业端演示账号：admin / mine_super · 密码 123456',
+    page: 'enterprise.html', cls: 'm-ent'
+  },
+  thinktank: {
+    ico: 'cap', name: '智库端', sub: '大学 / 科研机构 · 技术研发中心',
+    btn: '进入智库端分析中心 →',
+    hint: '智库端演示账号：t_admin · 密码 123456',
+    page: 'thinktank.html', cls: 'm-think'
+  },
+  supervision: {
+    ico: 'gov', name: '监管端', sub: '集团 / 安监部门 · 远程管理中心',
+    btn: '进入监管端指挥中心 →',
+    hint: '监管端演示账号：s_admin · 密码 123456',
+    page: 'supervision.html', cls: 'm-sup'
+  }
+};
+let curMode = 'enterprise';
+window._loginTarget = 'enterprise.html';
 
-/* 登录弹窗：三端账号统一登录，成功后跳转对应门户 */
-function openLogin(target) {
-  const t = target || (getSession() && getSession().target) || 'enterprise.html';
-  openModal(`
-    <h3>${ico('shield', 16)} 三端统一登录</h3>
-    <div class="field">
-      <label>账号</label>
-      <input id="lgUser" type="text" placeholder="请输入账号" autocomplete="username">
-    </div>
-    <div class="field">
-      <label>密码</label>
-      <input id="lgPass" type="password" placeholder="请输入密码" autocomplete="current-password" style="margin-bottom:10px">
-    </div>
-    <div class="field">
-      <label>验证码</label>
-      <div style="display:flex;align-items:center;gap:8px">
-        <input id="lgCap" type="text" maxlength="4" placeholder="请输入验证码" autocomplete="off" style="flex:1;letter-spacing:3px" onkeydown="if(event.key==='Enter')doLogin()">
-        <button type="button" id="lgCapBox" onclick="refreshCaptcha()" title="点击刷新验证码"
-          style="min-width:86px;height:38px;border:1px dashed rgba(255,255,255,.35);border-radius:8px;background:rgba(255,255,255,.05);color:var(--mint,#6fd0a8);font-family:'IBM Plex Mono';font-weight:700;font-size:18px;letter-spacing:4px;cursor:pointer">加载中</button>
-      </div>
-    </div>
-    <div class="m-desc" style="font-size:11px;line-height:1.9">
-      企业端：admin / mine_super &nbsp;·&nbsp; 密码 123456<br>
-      智库端：t_admin &nbsp;·&nbsp; 密码 123456<br>
-      监管端：s_admin &nbsp;·&nbsp; 密码 123456
-    </div>
-    <div class="m-actions">
-      <button class="btn ghost" onclick="closeModal()">取消</button>
-      <button class="btn solid" id="lgBtn" onclick="doLogin()">登 录</button>
-    </div>
-  `);
-  const u = $('#lgUser'), p = $('#lgPass');
-  u.focus();
-  const enter = (e) => { if (e.key === 'Enter') doLogin(); };
-  u.addEventListener('keydown', enter);
-  p.addEventListener('keydown', enter);
-  window._loginTarget = t;
-  refreshCaptcha(); // 打开弹窗即加载验证码
+function setMode(mode) {
+  const m = MODES[mode];
+  if (!m) return;
+  curMode = mode;
+  window._loginTarget = m.page;
+  document.querySelectorAll('.mode-tab').forEach((t) => t.classList.toggle('active', t.dataset.mode === mode));
+  const card = $('#lgLogo').closest('.ls-card');
+  card.classList.remove('m-ent', 'm-think', 'm-sup');
+  card.classList.add(m.cls);
+  $('#lgIco').innerHTML = ico(m.ico, 28);
+  $('#lgName').textContent = m.name + ' · 统一登录';
+  $('#lgSub').textContent = m.sub;
+  $('#lgBtn').textContent = m.btn;
+  $('#lgHint').textContent = m.hint;
+  $('#lgUser').focus();
 }
+document.querySelectorAll('.mode-tab').forEach((t) => t.addEventListener('click', () => setMode(t.dataset.mode)));
 
-/* 服务端图形验证码：可在按钮上点击刷新 */
+/* ==================== 登录 ==================== */
 let _captcha = null;
 async function refreshCaptcha() {
   const box = $('#lgCapBox');
@@ -173,22 +253,21 @@ async function doLogin() {
   try {
     const r = await api('/auth/login', { method: 'POST', body: { username: u, password: p, captchaId: _captcha.captchaId, captchaCode: c } });
     setSession({ token: r.token, user: r.user });
-    // 依据角色跳转对应门户
+    // 优先按账号角色跳转，未识别角色时回退到当前选中模式
     const roleMap = { enterprise: 'enterprise.html', thinktank: 'thinktank.html', supervision: 'supervision.html' };
     const page = roleMap[r.user.role] || window._loginTarget || 'enterprise.html';
     showToast('登录成功，正在进入' + (r.user.endName || r.user.role) + '...');
     setTimeout(() => { location.href = page; }, 600);
   } catch (e) {
-    // 验证码/凭据错误、限流或网络异常统一提示，并刷新验证码（一次性消费）
     showToast(e.message || '登录失败');
     refreshCaptcha();
     const ci = $('#lgCap'); if (ci) ci.value = '';
   } finally {
-    if (btn) { btn.textContent = '登 录'; btn.disabled = false; }
+    btn.textContent = MODES[curMode].btn; btn.disabled = false;
   }
 }
 
-/* 时钟 */
+/* ==================== 时钟 ==================== */
 (function () {
   const tick = () => {
     const d = new Date(), p = (n) => String(n).padStart(2, '0');
@@ -197,7 +276,7 @@ async function doLogin() {
   tick(); setInterval(tick, 1000);
 })();
 
-/* 后端连通性检测（HTTP + WS） */
+/* ==================== 后端连通性检测（HTTP + WS） ==================== */
 async function checkBackend() {
   const led = $('#connLed'), txt = $('#connText');
   try {
@@ -213,6 +292,10 @@ wsClient.on('connection_status', (p) => {
   if (p.connected) { led.className = 'led'; txt.textContent = '实时数据通道 · 在线'; }
 });
 wsClient.connect('portal');
+
+/* 初始化 */
+setMode('enterprise');
+refreshCaptcha();
 </script>
 </body>
 </html>

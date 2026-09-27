@@ -260,6 +260,42 @@ export function apiGetSensors(): Promise<BackendSensor[]> {
   return apiRequest<BackendSensor[]>('/api/sensor/all');
 }
 
+// 历史趋势（P0-历史趋势分析 + 数据来源溯源）
+export interface SensorHistoryPoint {
+  ts: string;       // 聚合时间点
+  interval: string; // minute | hour | day
+  avg: number;
+  min: number;
+  max: number;
+  samples: number;
+}
+
+export interface SensorSourceInfo {
+  source: string;      // mqtt | udp | simulator | legacy
+  source_addr: string; // 来源地址（mqtt broker URL / UDP 对端 IP:端口）
+  samples: number;
+}
+
+export interface SensorHistoryResult {
+  sensorId: string;
+  name: string;
+  interval: string;
+  points: SensorHistoryPoint[];
+  sources: SensorSourceInfo[];
+}
+
+/** 查询历史趋势，interval=minute|hour|day，from/to 为 ISO 时间（可省略） */
+export function apiGetSensorHistory(sensorId: string, interval: string = 'hour', from?: string, to?: string): Promise<SensorHistoryResult> {
+  const q: string[] = [`interval=${encodeURIComponent(interval)}`];
+  if (from !== undefined && from !== null && from.length > 0) {
+    q.push(`from=${encodeURIComponent(from)}`);
+  }
+  if (to !== undefined && to !== null && to.length > 0) {
+    q.push(`to=${encodeURIComponent(to)}`);
+  }
+  return apiRequest<SensorHistoryResult>(`/api/sensor/${encodeURIComponent(sensorId)}/history?${q.join('&')}`);
+}
+
 export interface SensorStats {
   total: number;
   online: number;
@@ -307,6 +343,8 @@ export interface BackendAlert {
   handled: boolean;
   handler: string;
   created_at: string;
+  raised_count: number;   // 已升级次数（预警升级状态机）
+  escalation_note: string; // 升级说明
 }
 
 export interface CountResult {
@@ -414,6 +452,118 @@ export function apiCreateReport(title: string, content: string): Promise<Analysi
 }
 
 // ========================================
+// 报表模板/导出（智库端，P2-3.6）
+// ========================================
+export interface ReportTemplate {
+  key: string;
+  name: string;
+  desc: string;
+}
+
+export interface ReportMineChoice {
+  id: number;
+  name: string;
+  location: string;
+  owner: string;
+  status: string;
+}
+
+export interface ReportTemplatesResult {
+  templates: ReportTemplate[];
+  mines: ReportMineChoice[];
+}
+
+export interface ReportOverview {
+  sensorCount: number;
+  online: number;
+  warning: number;
+  offline: number;
+}
+
+export interface ReportAlertLevels {
+  YELLOW: number;
+  ORANGE: number;
+  RED: number;
+}
+
+export interface ReportAlertSummary {
+  total: number;
+  unhandled: number;
+  byLevel: ReportAlertLevels;
+}
+
+export interface ReportRange {
+  from: string;
+  to: string;
+}
+
+export interface ReportSensorHist {
+  avg: number;
+  min: number;
+  max: number;
+  samples: number;
+  lastAt: string;
+}
+
+export interface ReportSensorRow {
+  id: string;
+  name: string;
+  type: string;
+  unit: string;
+  value: number;
+  threshold: number | null;
+  status: string;
+  isWarning: boolean;
+  mine_id: number;
+  hist: ReportSensorHist | null;
+}
+
+export interface GeneratedReport {
+  reportId: number;
+  template: string;
+  title: string;
+  templateName: string;
+  mineId: number | null;
+  mineName: string;
+  author: string;
+  range: ReportRange;
+  generatedAt: string;
+  overview: ReportOverview;
+  alertSummary: ReportAlertSummary;
+  sensors: ReportSensorRow[];
+  createdAt: string;
+}
+
+export function apiGetReportTemplates(): Promise<ReportTemplatesResult> {
+  return apiRequest<ReportTemplatesResult>('/api/report/templates');
+}
+
+export interface ReportGeneratePayload {
+  template: string;
+  mineId?: number | null;
+  from?: string;
+  to?: string;
+}
+
+export function apiGenerateReport(template: string, mineId?: number | null, from?: string, to?: string): Promise<GeneratedReport> {
+  const payload: ReportGeneratePayload = { template };
+  if (mineId !== undefined && mineId !== null) {
+    payload.mineId = mineId;
+  }
+  if (from !== undefined && from !== null) {
+    payload.from = from;
+  }
+  if (to !== undefined && to !== null) {
+    payload.to = to;
+  }
+  return apiRequest<GeneratedReport>('/api/report/generate', http.RequestMethod.POST, payload);
+}
+
+export function apiGetReportList(): Promise<AnalysisReport[]> {
+  return apiRequest<AnalysisReport[]>('/api/report/reports');
+}
+
+// ========================================
 // 监管端
 // ========================================
 export interface MineInfo {
@@ -429,6 +579,27 @@ export interface MineInfo {
 
 export function apiGetSupervisionMines(): Promise<MineInfo[]> {
   return apiRequest<MineInfo[]>('/api/supervision/mines');
+}
+
+export interface MineCompareItem {
+  id: number;
+  name: string;
+  location: string;
+  owner: string;
+  status: string;
+  sensorTotal: number;
+  online: number;
+  warning: number;
+  onlineRate: number;   // 在线率 0~1
+  handledRate: number;  // 处置率 0~1
+  totalAlerts: number;
+  unhandledAlert: number;
+  handledAlert: number;
+  maxLevel: string;     // RED/ORANGE/YELLOW/null
+}
+
+export function apiGetMineComparison(): Promise<MineCompareItem[]> {
+  return apiRequest<MineCompareItem[]>('/api/supervision/compare');
 }
 
 export interface SupervisionOverview {
@@ -489,6 +660,32 @@ export function apiUpdateDispatchStatus(id: number, status: string): Promise<Dis
 }
 
 // ========================================
+// VR 虚拟端双向 UDP 转发（经后端 /api/udp/forward，公开组免登录）
+// ========================================
+export interface UdpForwardResult {
+  sent?: boolean;
+  ok?: boolean;
+  to?: string;
+  bytes?: number;
+  error?: string;
+  message?: string;
+}
+
+export interface UdpForwardFramePayload {
+  mode: string;
+  sensorId?: string;
+  value?: number;
+  ip?: string;
+  port?: number;
+  payload?: string;
+}
+
+/** 发送 VR 虚拟帧 / 控制指令到后端，由后端 UDP 转发 */
+export function apiUdpForward(payload: UdpForwardFramePayload): Promise<UdpForwardResult> {
+  return apiRequest<UdpForwardResult>('/api/udp/forward', http.RequestMethod.POST, payload);
+}
+
+// ========================================
 // 实时 WebSocket 通道
 // ========================================
 export interface WsEvent {
@@ -519,6 +716,18 @@ export class RealtimeClient {
     const list = this.handlers.get(type) || [];
     list.push(fn);
     this.handlers.set(type, list);
+  }
+
+  /** 移除指定回调（避免页面反复进入时回调累积） */
+  public off(type: string, fn: (payload: Object) => void): void {
+    const list = this.handlers.get(type);
+    if (!list) return;
+    const next = list.filter((f) => f !== fn);
+    if (next.length > 0) {
+      this.handlers.set(type, next);
+    } else {
+      this.handlers.delete(type);
+    }
   }
 
   public connect(clientId?: string): void {

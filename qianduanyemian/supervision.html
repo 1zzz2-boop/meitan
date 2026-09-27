@@ -5,16 +5,17 @@
 <title>监管端 · 深地智控</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="assets/style.css?v=20260915">
 </head>
 <body>
 <div class="app-bg"></div>
-<div id="app" style="display:flex">
+<div id="app" style="display:flex;flex-direction:row">
   <aside class="sidebar">
     <div class="brand"><div class="mark">🏛️</div><div><h1>深地智控 · 监管端</h1><p>SUPERVISION · REMOTE CENTER</p></div></div>
     <nav class="nav">
       <div class="nav-sec">监管中心</div>
       <div class="nav-item" data-view="overview"><span class="ico">🗺️</span>监控总览</div>
+      <div class="nav-item" data-view="compare"><span class="ico">⚖️</span>矿井对比</div>
       <div class="nav-item" data-view="alert"><span class="ico">🚨</span>监管预警<span class="dot" id="alertNavDot" style="display:none"></span></div>
       <div class="nav-sec">态势大屏</div>
       <div class="nav-item" data-link="bigscreen.html?from=supervision.html"><span class="ico">🖥️</span>综合态势大屏</div>
@@ -63,6 +64,29 @@
           <div class="panel">
             <div class="panel-title">监管矿井列表 <span class="tag" id="mineCountTag">0 座矿井</span></div>
             <div id="mineList" class="grid g-2"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 矿井对比 ============ -->
+      <section class="view" id="view-compare">
+        <div class="grid" style="margin-top:0">
+          <div class="panel">
+            <div class="panel-title">多矿井横向对比 <span class="tag" id="cmpCountTag">0 座矿井</span><span class="tag">按在线率排序</span></div>
+            <table class="tbl" style="margin-top:6px">
+              <thead><tr><th>矿井</th><th>状态</th><th>传感器</th><th>在线率</th><th>预警总数</th><th>未处置</th><th>处置率</th><th>最高预警</th></tr></thead>
+              <tbody id="cmpTbody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="grid g-12" style="margin-top:16px">
+          <div class="col-6 panel">
+            <div class="panel-title">在线率对比 <span class="tag">ONLINE RATE</span></div>
+            <div id="cmpOnline"></div>
+          </div>
+          <div class="col-6 panel">
+            <div class="panel-title">预警处置率对比 <span class="tag">DISPOSAL RATE</span></div>
+            <div id="cmpDisposal"></div>
           </div>
         </div>
       </section>
@@ -150,7 +174,7 @@
 </div>
 <div class="modal-mask" id="modalMask"><div class="modal" id="modalBox"></div></div>
 <div class="toast" id="toast"></div>
-<script src="assets/app.js?v=20260914"></script>
+<script src="assets/app.js?v=20260924"></script>
 <script>
 /* 统一图标：静态 emoji → SVG（与双端共享图标库一致，工业描边风格） */
 (function () {
@@ -195,6 +219,7 @@
 
 const PAGE_META = {
   overview: ['监控总览', '多矿井远程集中监控 · 实时态势'],
+  compare: ['矿井对比', '多矿井横向对比 · 在线率 · 预警处置'],
   alert: ['监管预警', '跨矿井预警态势 · 分级处置'],
   dispatch: ['应急调度', '远程协同调度指令 · 闭环管理'],
   report: ['监管报告', '安全生产监管态势 · 分析报告']
@@ -274,6 +299,57 @@ function renderMines(mines) {
     </div>`;
   }).join('');
 }
+
+async function loadCompare() {
+  try {
+    const cmp = await api('/supervision/compare');
+    renderCompare(cmp || []);
+  } catch (e) { console.warn('[compare]', e.message); }
+}
+
+function renderCompare(cmp) {
+  const tag = $('#cmpCountTag'); if (tag) tag.textContent = `${cmp.length} 座矿井`;
+  // 按在线率降序排序
+  const sorted = [...cmp].sort((a, b) => (b.onlineRate || 0) - (a.onlineRate || 0));
+  const stBadge = (s) => s === 'RUNNING' ? '<span class="badge green">运行中</span>' : `<span class="badge gray">${esc(s || '--')}</span>`;
+  const lvBadge = (lv) => !lv ? '<span class="badge gray">--</span>'
+    : `<span class="badge ${lv === 'RED' ? 'red' : (lv === 'ORANGE' ? 'orange' : 'amber')}">${lv}</span>`;
+  const tb = $('#cmpTbody');
+  if (tb) {
+    tb.innerHTML = sorted.length ? sorted.map((m) => {
+      const risk = m.maxLevel === 'RED' || (m.unhandledAlert > 0 && (m.handledRate || 0) < 1) || (m.onlineRate || 0) < 1;
+      return `<tr class="${risk ? 'risk-row' : ''}">
+      <td><span style="color:var(--orange)">${risk ? '⚠ ' : ''}</span><b>${esc(m.name)}</b><div class="dim" style="font-size:10px">${esc(m.location || '')}</div></td>
+      <td>${stBadge(m.status)}</td>
+      <td class="num">${m.sensorTotal}</td>
+      <td class="num"><b>${Math.round((m.onlineRate || 0) * 100)}%</b></td>
+      <td class="num">${m.totalAlerts}</td>
+      <td class="num" style="color:${m.unhandledAlert ? 'var(--red)' : 'var(--muted)'}">${m.unhandledAlert}</td>
+      <td class="num">${Math.round((m.handledRate || 0) * 100)}%</td>
+      <td>${lvBadge(m.maxLevel)}</td>
+    </tr>`;
+    }).join('') : '<tr><td colspan="8"><div class="empty"><div class="e">' + ico('globe', 30) + '</div><div>暂无矿井数据</div></div></td></tr>';
+  }
+  // 在线率条形图
+  renderHBar('#cmpOnline', sorted.map((m) => ({
+    label: cut(m.name, 12),
+    value: Math.round((m.onlineRate || 0) * 100),
+    pct: Math.round((m.onlineRate || 0) * 100),
+    color: 'var(--green)',
+    unit: '%'
+  })));
+  // 处置率条形图
+  renderHBar('#cmpDisposal', sorted.map((m) => ({
+    label: cut(m.name, 12),
+    value: Math.round((m.handledRate || 0) * 100),
+    pct: Math.round((m.handledRate || 0) * 100),
+    color: 'var(--cyan)',
+    unit: '%',
+    hint: (m.handledRate || 0) <= 0 ? '尚无处置' : undefined
+  })));
+}
+
+function cut(s, n) { s = s || ''; return s.length > n ? s.slice(0, n) + '…' : s; }
 
 function showMineDetail(id) {
   const m = (state.mines || []).find((x) => String(x.id) === String(id));
@@ -713,6 +789,29 @@ function handleSensorUpdate(list) {
   renderReportSummary();
 }
 
+function applySingleSensor(s) {
+  // 单对象广播：合入 state.sensors 并就地更新该矿井的接入/在线/预警统计，不重拉全量
+  if (!s || !s.id) return;
+  const idx = state.sensors.findIndex(x => x && x.id === s.id);
+  if (idx >= 0) state.sensors[idx] = s; else state.sensors.push(s);
+  setVal('#ovSensorTotal', state.sensors.length);
+  const mineId = s.mine_id;
+  const base = (state.overview && state.overview.mines) || state.mines;
+  const map = {};
+  (Array.isArray(base) ? base : []).forEach(m => { map[m.id] = Object.assign({}, m); });
+  const b = map[mineId] || map[String(mineId)];
+  if (b) {
+    const list = state.sensors.filter(x => String(x.mine_id) === String(mineId));
+    b.sensorTotal = list.length;
+    b.online = list.filter(x => x.status === 'ONLINE').length;
+    b.warning = list.filter(x => x.isWarning).length;
+  }
+  state.mines = Object.values(map);
+  renderMines(state.mines);
+  renderTopology(state.mines);
+  renderReportSummary();
+}
+
 function onNewAlert(p) {
   const nm = (p && (p.sensor_name || p.sensor_id)) || '';
   const msg = (p && p.message) || '';
@@ -726,7 +825,7 @@ async function loadSensors() {
 }
 
 async function refreshAll() {
-  await Promise.allSettled([loadOverview(), loadAlerts(), loadDispatches(), loadReports(), loadTrend(), loadSensors()]);
+  await Promise.allSettled([loadOverview(), loadAlerts(), loadDispatches(), loadReports(), loadTrend(), loadSensors(), loadCompare()]);
   renderReportSummary();
   renderDispatchSummary();
   renderReportList();
@@ -743,7 +842,7 @@ async function refreshAll() {
   window.switchView('overview');
 
   wsClient.connect('supervision');
-  wsClient.on('sensor_update', (p) => { if (Array.isArray(p)) handleSensorUpdate(p); });
+  wsClient.on('sensor_update', (p) => { if (Array.isArray(p)) handleSensorUpdate(p); else applySingleSensor(p); });
   wsClient.on('alert_update', (p) => { if (p) onNewAlert(p); });
 
   refreshAll();

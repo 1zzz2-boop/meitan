@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VR 虚拟端 · 深地智控</title>
+<style>
+  :root{--bg:#0b1220;--panel:#111a2b;--line:#24324a;--txt:#d7e0ee;--mut:#7a8799;--green:#2bd08b;--amber:#f0a63a;--red:#ff5a67;--cyan:#2facff;--mono:'IBM Plex Mono',Consolas,monospace;}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--txt);font-family:'Noto Sans SC','Microsoft YaHei',sans-serif;padding:16px;min-height:100vh}
+  .hd{display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+  .hd h1{font-size:18px;font-weight:600}
+  .hd .sub{color:var(--mut);font-size:12px}
+  .dot{width:10px;height:10px;border-radius:50%;background:#888}
+  .dot.on{background:var(--green);box-shadow:0 0 8px var(--green)}
+  .dot.off{background:#666}
+  .stat{font-size:12px;color:var(--mut);font-family:var(--mono)}
+  .wrap{display:grid;grid-template-columns:1fr 360px;gap:14px;align-items:start}
+  @media(max-width:900px){.wrap{grid-template-columns:1fr}}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px;min-height:84px}
+  .card.warn{border-color:var(--red)}
+  .card .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+  .card .name{font-size:13px;font-weight:600}
+  .card .id{font-size:10px;color:var(--mut);font-family:var(--mono)}
+  .card .val{font-size:24px;font-weight:600;font-family:var(--mono);margin:4px 0 2px}
+  .card .val em{font-size:12px;color:var(--mut);font-style:normal;font-weight:400}
+  .st{font-size:10px;padding:1px 6px;border-radius:5px}
+  .st.on{color:var(--green);background:rgba(43,208,139,.12)}
+  .st.off{color:var(--mut);background:rgba(122,135,153,.12)}
+  .empty{color:var(--mut);padding:40px;text-align:center;grid-column:1/-1}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px}
+  .panel h2{font-size:14px;font-weight:600;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+  .panel .desc{font-size:11px;color:var(--mut);margin-bottom:12px;line-height:1.6}
+  .grp{margin-bottom:14px}
+  .grp h3{font-size:12px;color:var(--cyan);font-weight:600;margin-bottom:8px;border-bottom:1px dashed var(--line);padding-bottom:5px}
+  label{display:block;font-size:11px;color:var(--mut);margin:8px 0 3px}
+  input,select{width:100%;background:#0e1626;border:1px solid var(--line);color:var(--txt);border-radius:7px;padding:9px 10px;font-size:13px;outline:none}
+  input:focus,select:focus{border-color:var(--cyan)}
+  button{width:100%;background:var(--cyan);color:#03121f;border:none;border-radius:8px;padding:10px;font-size:13px;font-weight:600;cursor:pointer;margin-top:10px}
+  button:hover{filter:brightness(1.1)}
+  button.amber{background:var(--amber)}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  .toast{font-size:11px;font-family:var(--mono);color:var(--green);margin-top:8px;min-height:14px;word-break:break-all}
+  .toast.err{color:var(--red)}
+</style>
+</head>
+<body>
+  <div class="hd">
+    <span class="dot off" id="dot"></span>
+    <h1>VR 虚拟端 · 双向交互</h1>
+    <span class="sub">实时监测 · 虚拟帧下发 · 硬件控制转发</span>
+    <span class="stat" id="stat">通道检测中…</span>
+  </div>
+
+  <div class="wrap">
+    <div>
+      <div class="grid" id="grid"><div class="empty">等待数据…</div></div>
+    </div>
+
+    <div class="panel">
+      <h2>VR 数据交互面板</h2>
+      <div class="desc">VR 端像硬件一样经 UDP 交互。发送虚拟帧会落库并实时广播；控制指令由本机后端转发，真实 UDP 发往目标硬件。</div>
+
+      <div class="grp">
+        <h3>① 发送 VR 虚拟帧</h3>
+        <label>传感器</label>
+        <select id="sensorSel"></select>
+        <label>数值 (value)</label>
+        <input id="frameVal" type="number" step="any" value="12.5">
+        <button id="sendFrame">发送虚拟帧</button>
+      </div>
+
+      <div class="grp">
+        <h3>② 向硬件发送控制指令</h3>
+        <label>目标 IP (硬件)</label>
+        <input id="cmdIp" type="text" placeholder="192.168.137.106">
+        <label>目标端口</label>
+        <input id="cmdPort" type="number" min="1" max="65535" value="8890">
+        <label>指令内容</label>
+        <input id="cmdPayload" type="text" placeholder="BEEP_ON\r\n 或控制串">
+        <button id="sendCmd" class="amber">转发指令 → 硬件</button>
+      </div>
+
+      <div class="toast" id="toast"></div>
+    </div>
+  </div>
+
+<script>
+const grid=document.getElementById('grid'), dot=document.getElementById('dot'),
+      stat=document.getElementById('stat'), toast=document.getElementById('toast');
+const store={};
+const WS_URL=(location.protocol==='https:'?'wss':'ws')+'://'+(location.hostname||'localhost')+':8080';
+const API_BASE=location.protocol+'://'+(location.hostname||'localhost')+':3000';
+
+// 传感器字典（与后端 sensors 表 id 一致）
+const SENSORS=[
+  {id:'sensor_weight',name:'称重传感器',unit:'kg'},{id:'sensor_water_level',name:'液位传感器',unit:'m'},
+  {id:'sensor_film_pressure',name:'薄膜传感器',unit:'kN'},{id:'sensor_ultrasonic',name:'超声波测距',unit:'m'},
+  {id:'sensor_mq2',name:'MQ2可燃气体',unit:'ppm'},{id:'sensor_temperature',name:'DHT11温度',unit:'℃'},
+  {id:'sensor_humidity',name:'DHT11湿度',unit:'%'},{id:'sensor_co2',name:'CO2浓度',unit:'%'},
+  {id:'sensor_so2',name:'SO2浓度',unit:'%'},{id:'sensor_vibration',name:'震动传感器',unit:'g'},
+  {id:'sensor_strain',name:'锚杆弯折',unit:'mm'},{id:'sensor_water_pressure',name:'水压传感器',unit:'MPa'}
+];
+const sensorSel=document.getElementById('sensorSel');
+SENSORS.forEach(s=>{ const o=document.createElement('option'); o.value=s.id; o.textContent=s.name; sensorSel.appendChild(o); });
+
+function fmtTime(t){ if(!t) return '--'; try{ return new Date(t).toLocaleTimeString('zh-CN',{hour12:false}); }catch(e){ return '--'; } }
+function esc(s){ return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function tshot(v){ return /^[-+]?\d+(\.\d+)?$/.test(String(v)); }
+function upsert(s){
+  if(!s||!s.id) return;
+  store[s.id]=s;
+  let el=document.querySelector('.card[data-id="'+s.id+'"]');
+  if(!el){ el=document.createElement('div'); el.className='card'; el.dataset.id=s.id; grid.appendChild(el); }
+  const on=s.status==='ONLINE';
+  const val = tshot(s.value) ? (Math.round(s.value*100)/100).toFixed(2) : (s.value==null?'--':s.value);
+  el.className = 'card' + (s.isWarning ? ' warn' : '');
+  el.innerHTML =
+    '<div class="top"><span class="name">'+esc(s.name||s.id)+'</span><span class="st '+(on?'on':'off')+'">'+(on?'在线':'离线')+'</span></div>'+
+    '<div class="id">'+esc(s.id)+(s.source?' · <b style="color:var(--cyan)">'+esc(s.source)+'</b> '+esc(s.source_addr||''):'')+'</div>'+
+    '<div class="val">'+val+'<em>'+esc(s.unit||'')+'</em></div>'+
+    '<div class="id">'+fmtTime(s.updated_at)+(s.isWarning?' · <b style="color:var(--red)">预警</b>':'')+'</div>';
+  if(!grid.querySelector('.empty')) { /* ok */ }
+}
+function clearStore(){ Object.keys(store).forEach(x=>delete store[x]); grid.querySelectorAll('.card').forEach(n=>n.remove()); }
+function onMsg(msg){
+  if(!msg) return;
+  const p = msg.payload !== undefined ? msg.payload : (msg.data !== undefined ? msg.data : msg);
+  const t = msg.type;
+  if(Array.isArray(p)){
+    if(t==='sensor_stats'){ stat.textContent='统计 · 共'+(p.length??'-'); return; }
+    grid.innerHTML=''; clearStore(); (p||[]).filter(x=>x&&x.id).forEach(upsert);
+    if(!grid.querySelectorAll('.card').length) grid.innerHTML='<div class="empty">无传感器数据</div>';
+    return;
+  }
+  if(t==='sensor_stats' && p && typeof p==='object'){ stat.textContent='统计 · 共'+(p.total??'-')+' · 在线'+(p.online??'-')+' · 预警'+(p.warning??'-'); return; }
+  if(t==='connection_status' && p){ stat.textContent='通道就绪 · 客户端 '+(p.clientId||''); return; }
+  if(Array.isArray(p&&p.sensors)){ p.sensors.forEach(upsert); return; }
+  if(p && p.id){ upsert(p); return; }
+  stat.textContent='收到 · '+t+' · '+new Date().toLocaleTimeString('zh-CN',{hour12:false});
+}
+function connect(){
+  let ws;
+  try{ ws=new WebSocket(WS_URL); }catch(e){ dot.className='dot off'; stat.textContent='创建失败 · 重连'; setTimeout(connect,3000); return; }
+  ws.onopen=()=>{ dot.className='dot on'; stat.textContent='已连接 '+WS_URL; };
+  ws.onmessage=(ev)=>{ let m=null; try{ m=JSON.parse(ev.data); }catch(e){} if(m) onMsg(m); };
+  ws.onclose=()=>{ dot.className='dot off'; stat.textContent='已断开 · 3秒重连'; setTimeout(connect,3000); };
+  ws.onerror=()=>{ try{ws.close();}catch(e){} };
+}
+
+/* ---- 双向 UDP 转发（经后端 /api/udp/forward，公开组免登录） ---- */
+async function forward(body){
+  toast.className='toast'; toast.textContent='转发中…';
+  const btn=document.activeElement; if(btn){ btn.disabled=true; }
+  try{
+    const res=await fetch(API_BASE+'/api/udp/forward',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const j=await res.json().catch(()=>({}));
+    if(!res.ok){ toast.className='toast err'; toast.textContent='失败 '+res.status+' · '+(j.message||j.error||''); return; }
+    toast.className='toast'; toast.textContent='成功 → '+JSON.stringify(j);
+  }catch(e){ toast.className='toast err'; toast.textContent='网络错误 · '+e.message; }
+  finally{ if(btn) btn.disabled=false; }
+}
+document.getElementById('sendFrame').onclick=()=>{
+  const sensorId=sensorSel.value, value=parseFloat(document.getElementById('frameVal').value);
+  if(!sensorId || Number.isNaN(value)){ toast.className='toast err'; toast.textContent='请选择传感器并输入数值'; return; }
+  forward({mode:'frame', sensorId, value});
+};
+document.getElementById('sendCmd').onclick=()=>{
+  const ip=document.getElementById('cmdIp').value.trim();
+  const port=parseInt(document.getElementById('cmdPort').value,10);
+  const payload=document.getElementById('cmdPayload').value;
+  if(!ip || !port || port<1 || port>65535){ toast.className='toast err'; toast.textContent='请输入合法 IP 与端口'; return; }
+  forward({mode:'cmd', ip, port, payload});
+};
+
+connect();
+</script>
+</body>
+</html>

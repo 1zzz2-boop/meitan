@@ -5,11 +5,11 @@
 <title>智库端 · 深地智控</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="assets/style.css?v=20260915">
 </head>
 <body>
 <div class="app-bg"></div>
-<div id="app" style="display:flex">
+<div id="app" style="display:flex;flex-direction:row">
   <aside class="sidebar">
     <div class="brand"><div class="mark">🎓</div><div><h1>深地智控 · 智库端</h1><p>RESEARCH · THINK TANK</p></div></div>
     <nav class="nav">
@@ -69,7 +69,7 @@
           </div>
           <div style="overflow-x:auto">
             <table class="tbl">
-              <thead><tr><th>名称</th><th>类型</th><th>当前值</th><th>阈值</th><th>状态</th><th>更新时间</th></tr></thead>
+              <thead><tr><th>名称</th><th>类型</th><th>当前值</th><th>阈值</th><th>状态</th><th>更新时间</th><th>操作</th></tr></thead>
               <tbody id="sensorTbody"></tbody>
             </table>
           </div>
@@ -137,6 +137,19 @@
           <button class="btn amber" onclick="exportReportHTML()">📄 导出研究报告 HTML</button>
           <button class="btn solid" onclick="openNewReport()">📝 新建报告</button>
         </div>
+        <div class="panel" style="margin-bottom:16px">
+          <div class="panel-title">报表模板引擎<span class="tag">CSV / XLSX 导出</span></div>
+          <div style="font-size:12.5px;color:var(--muted);margin-bottom:10px">选择模板与矿井范围，一键聚合数据生成结构化报表（安全态势 / 设备运行 / 统计汇总）。</div>
+          <div style="font-size:12px;font-weight:600;color:var(--fg);margin:2px 0 6px">报表模板 <span id="tplHint" style="color:var(--muted);font-weight:400"></span></div>
+          <div style="display:flex;flex-wrap:wrap;gap:10px" id="tplChips"></div>
+          <div style="font-size:12px;font-weight:600;color:var(--fg);margin:14px 0 6px">矿井范围</div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px" id="mineChips"></div>
+          <div style="display:flex;gap:10px;margin-top:16px;align-items:center;flex-wrap:wrap">
+            <button class="btn solid" id="btnGenReport" onclick="genTemplateReport()">⚙️ 生成报表</button>
+            <span id="genSelInfo" style="font-size:12px;color:var(--muted)"></span>
+          </div>
+          <div id="genResult" style="margin-top:14px"></div>
+        </div>
         <div class="panel">
           <div class="panel-title">分析报告列表<span class="tag" id="reportCount">--</span></div>
           <div id="reportList"></div>
@@ -149,7 +162,7 @@
 </div>
 <div class="modal-mask" id="modalMask"><div class="modal" id="modalBox"></div></div>
 <div class="toast" id="toast"></div>
-<script src="assets/app.js?v=20260914"></script>
+<script src="assets/app.js?v=20260924"></script>
 <script>
 /* 统一图标：静态 emoji → SVG（与双端共享图标库一致，工业描边风格） */
 (function () {
@@ -238,30 +251,119 @@ if (session) {
     $('#dkSamples').textContent = samples;
     renderSensorTable(sensors);
   }
+  function sensorRow(s) {
+    const meta = sensorMeta(s.type);
+    const warn = !!s.isWarning;
+    const badge = warn
+      ? '<span class="badge red">预警</span>'
+      : (s.status === 'ONLINE' ? '<span class="badge green">在线</span>' : '<span class="badge gray">离线</span>');
+    const cur = s.value == null ? '--'
+      : fmt2(s.value) + ' <span class="dim">' + esc(s.unit || '') + '</span>';
+    const th = s.threshold == null
+      ? '<span class="dim">--</span>'
+      : fmt2(s.threshold) + ' <span class="dim">' + esc(s.unit || '') + '</span>';
+    return '<tr data-id="' + esc(s.id) + '">'
+      + '<td>' + meta.icon + ' ' + esc(s.name) + '</td>'
+      + '<td class="dim">' + esc(meta.name) + '</td>'
+      + '<td class="num" style="' + (warn ? 'color:var(--red)' : '') + '">' + cur + '</td>'
+      + '<td class="num">' + th + '</td>'
+      + '<td>' + badge + '</td>'
+      + '<td class="dim">' + fmtTime(s.updated_at) + '</td>'
+      + '<td><button class="btn sm ghost" onclick="openTankHistory(\'' + esc(s.id) + '\')">趋势</button></td>'
+      + '</tr>';
+  }
   function renderSensorTable(sensors) {
     $('#sensorTableCount').textContent = sensors.length + ' 条';
     $('#sensorEmpty').style.display = sensors.length ? 'none' : 'flex';
-    $('#sensorTbody').innerHTML = sensors.map(s => {
-      const meta = sensorMeta(s.type);
-      const warn = !!s.isWarning;
-      const badge = warn
-        ? '<span class="badge red">预警</span>'
-        : (s.status === 'ONLINE' ? '<span class="badge green">在线</span>' : '<span class="badge gray">离线</span>');
-      const cur = s.value == null ? '--'
-        : fmt2(s.value) + ' <span class="dim">' + esc(s.unit || '') + '</span>';
-      const th = s.threshold == null
-        ? '<span class="dim">--</span>'
-        : fmt2(s.threshold) + ' <span class="dim">' + esc(s.unit || '') + '</span>';
-      return '<tr>'
-        + '<td>' + meta.icon + ' ' + esc(s.name) + '</td>'
-        + '<td class="dim">' + esc(meta.name) + '</td>'
-        + '<td class="num" style="' + (warn ? 'color:var(--red)' : '') + '">' + cur + '</td>'
-        + '<td class="num">' + th + '</td>'
-        + '<td>' + badge + '</td>'
-        + '<td class="dim">' + fmtTime(s.updated_at) + '</td>'
-        + '</tr>';
-    }).join('');
+    $('#sensorTbody').innerHTML = sensors.map(sensorRow).join('');
   }
+  /* 单对象实时更新：就地刷新对应表行，不重建整表 */
+  function applySingleSensor(s) {
+    const tr = document.querySelector('#sensorTbody tr[data-id="' + s.id + '"]');
+    if (!tr) return; // 尚无该行 → 等全量快照填充
+    const holder = document.createElement('tbody');
+    holder.innerHTML = sensorRow(s);
+    tr.outerHTML = holder.firstChild.outerHTML;
+  }
+  /* ======== 历史趋势与来源溯源（P0） ======== */
+  async function loadTankHist(s, iv) {
+    const chartEl = $('#histChart'), srcEl = $('#histSources');
+    if (!chartEl) return;
+    chartEl.innerHTML = '<div style="padding:30px;text-align:center;color:var(--muted-2)">加载中…</div>';
+    const dt = new Date();
+    const to = dt.toISOString();
+    const from = new Date(dt.getTime() - (iv === 'day' ? 30 : 24) * 3600 * 1000).toISOString();
+    try {
+      const r = await api('/sensor/' + encodeURIComponent(s.id) + '/history?interval=' + iv +
+        '&from=' + encodeURIComponent(from) + '&to=' + encodeURIComponent(to));
+      const pts = r.points || [];
+      if (!pts.length) {
+        chartEl.innerHTML = '<div style="padding:30px;text-align:center;color:var(--muted-2)">当前时段暂无历史数据</div>';
+        if (srcEl) srcEl.innerHTML = '';
+        return;
+      }
+      const vals = pts.map(p => Number(p.avg));
+      const step = Math.max(1, Math.round(pts.length / 8));
+      const labels = pts.map((p, i) => (i % step === 0 || i === pts.length - 1) ? tankHistLabel(p.ts, iv) : '');
+      renderLineChart('#histChart', vals, { labels, stroke: '#58a6a0' });
+      renderTankSources('#histSources', r.sources);
+    } catch (e) {
+      chartEl.innerHTML = '<div style="padding:30px;text-align:center;color:var(--red)">历史趋势获取失败</div>';
+      if (srcEl) srcEl.innerHTML = '';
+    }
+  }
+  function tankHistLabel(ts, iv) {
+    const d = new Date(ts);
+    if (isNaN(d.getTime())) return String(ts).slice(5, 16).replace('T', ' ');
+    const p = n => String(n).padStart(2, '0');
+    return iv === 'day' ? (d.getMonth() + 1) + '/' + d.getDate() : p(d.getHours()) + ':' + p(d.getMinutes());
+  }
+  function tankSrcColor(src) {
+    if (src === 'mqtt') return '#3DDC84';
+    if (src === 'udp') return '#4A9CFF';
+    if (src === 'simulator') return '#F5C542';
+    return '#8A8F98';
+  }
+  function tankSrcText(src) {
+    if (src === 'mqtt') return 'MQTT';
+    if (src === 'udp') return 'UDP';
+    if (src === 'simulator') return '模拟器';
+    if (src === 'legacy') return '存量库';
+    return String(src || '').toUpperCase() || '未知';
+  }
+  function renderTankSources(sel, list) {
+    const el = $(sel); if (!el) return;
+    const arr = list || [];
+    const total = arr.reduce((a, x) => a + (Number(x.samples) || 0), 0);
+    if (!arr.length) { el.innerHTML = '<div style="font-size:12px;color:var(--muted-2)">无来源标签（存量数据）</div>'; return; }
+    el.innerHTML = '<div style="font-size:12px;color:var(--muted);margin-bottom:4px">数据来源溯源 · 共 ' + total + ' 条样本</div>' +
+      arr.map(x => '<div class="hist-src"><span class="tag" style="background:' + tankSrcColor(x.source) + '">' + tankSrcText(x.source) +
+        '</span><span>' + (Number(x.samples) || 0) + ' 条</span><span class="addr">' + (esc(x.source_addr) || '—') + '</span></div>').join('');
+  }
+  function openTankHistory(id) {
+    const s = (window._lastSensors || []).find(x => x.id === id);
+    if (!s) return showToast('传感器不存在');
+    const meta = sensorMeta(s.type);
+    const iv = 'hour';
+    openModal('<h3>' + meta.icon + ' ' + esc(s.name) + ' · 历史趋势</h3>' +
+      '<div class="m-row"><span>设备 ID</span><b>' + esc(s.id) + '</b></div>' +
+      '<div class="m-actions" style="justify-content:flex-start;margin-top:6px">' +
+      '<button class="btn sm solid" id="hHour" onclick="switchTankHist(\'' + esc(s.id) + '\',\'hour\')">按时</button>' +
+      '<button class="btn sm ghost" id="hDay" onclick="switchTankHist(\'' + esc(s.id) + '\',\'day\')">按日</button></div>' +
+      '<div id="histChart" style="height:210px;margin-top:10px"></div>' +
+      '<div id="histSources" style="margin-top:8px"></div>' +
+      '<div class="m-actions"><button class="btn ghost" onclick="closeModal()">关闭</button></div>');
+    loadTankHist(s, iv);
+  }
+  function switchTankHist(id, iv) {
+    const s = (window._lastSensors || []).find(x => x.id === id);
+    if (!s) return;
+    const h = $('#hHour'), d = $('#hDay');
+    if (h) h.className = (iv === 'hour' ? 'btn sm solid' : 'btn sm ghost');
+    if (d) d.className = (iv === 'day' ? 'btn sm solid' : 'btn sm ghost');
+    loadTankHist(s, iv);
+  }
+
   function downloadCSV() {
     const sensors = window._lastSensors || [];
     if (!sensors.length) return showToast('暂无数据可导出');
@@ -436,7 +538,107 @@ if (session) {
   }
 
   /* ==================== 视图四 · 报告导出 ==================== */
+  // ---- 报表模板引擎（P2-3.6）----
+  let _engine = { templates: [], mines: [], tpl: '', mine: 0 };
+  async function loadReportEngine() {
+    try {
+      const res = await api('/report/templates');
+      _engine.templates = res.templates || [];
+      _engine.mines = res.mines || [];
+      if (_engine.templates.length && !_engine.tpl) _engine.tpl = _engine.templates[0].key;
+      if (_engine.templates.length) $('#tplHint').textContent = _engine.templates[0].desc;
+      $('#tplChips').innerHTML = _engine.templates.map(t =>
+        '<button class="btn sm ' + (_engine.tpl === t.key ? 'solid' : 'ghost') + '" data-k="' + t.key + '" onclick="pickTpl(\'' + t.key + '\',' + JSON.stringify(t.desc) + ')">' + t.name + '</button>'
+      ).join('');
+      $('#mineChips').innerHTML =
+        '<button class="btn sm ' + (_engine.mine === 0 ? 'solid' : 'ghost') + '" onclick="pickMine(0)">全部矿井</button>'
+        + _engine.mines.map(m => '<button class="btn sm ' + (_engine.mine === m.id ? 'solid' : 'ghost') + '" onclick="pickMine(' + m.id + ')">' + esc(shortMine(m.name)) + '</button>').join('');
+    } catch (e) { /* 模板接口不可用时静默 */ }
+  }
+  function pickTpl(k, desc) {
+    _engine.tpl = k;
+    if (desc) $('#tplHint').textContent = desc;
+    document.querySelectorAll('#tplChips .btn').forEach(b => b.classList.toggle('solid', b.dataset.k === k));
+  }
+  function pickMine(id) {
+    _engine.mine = id;
+    // 重新渲染 mine chips 以刷新选中态
+    $('#mineChips').innerHTML =
+      '<button class="btn sm ' + (_engine.mine === 0 ? 'solid' : 'ghost') + '" data-mine="0" onclick="pickMine(0)">全部矿井</button>'
+      + _engine.mines.map(m => '<button class="btn sm ' + (_engine.mine === m.id ? 'solid' : 'ghost') + '" data-mine="' + m.id + '" onclick="pickMine(' + m.id + ')">' + esc(shortMine(m.name)) + '</button>').join('');
+  }
+  function shortMine(name) {
+    if (name.indexOf('青岛') >= 0) return '青岛矿井';
+    if (name.indexOf('朔州') >= 0) return '朔州矿井';
+    if (name.indexOf('鄂尔多斯') >= 0) return '鄂尔多斯矿';
+    return name.length > 10 ? name.slice(0, 10) + '…' : name;
+  }
+  async function genTemplateReport() {
+    if (!_engine.tpl) return showToast('请选择报表模板');
+    const btn = $('#btnGenReport');
+    const body = { template: _engine.tpl, mineId: _engine.mine || null };
+    btn.disabled = true; btn.textContent = '⏳ 生成中...';
+    try {
+      const r = await api('/report/generate', { method: 'POST', body: body });
+      renderGenResult(r);
+      $('#genSelInfo').textContent = '已生成：' + r.title;
+      showToast('报表已生成');
+    } catch (e) { showToast('报表生成失败：' + e.message); }
+    finally { btn.disabled = false; btn.textContent = '⚙️ 生成报表'; }
+  }
+  function renderGenResult(r) {
+    const lv = r.alertSummary.byLevel || {};
+    $('#genResult').innerHTML =
+      '<div class="panel" style="margin:0;padding:14px;border:1px solid var(--line)">'
+      + '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">'
+      + '<span style="font-size:14px;font-weight:700;color:var(--green)">✔ ' + esc(r.title) + '</span>'
+      + '<span class="tag">#' + r.reportId + '</span>'
+      + '</div>'
+      + '<div style="display:flex;flex-wrap:wrap;gap:18px;margin-top:12px;font-size:12.5px;color:var(--fg)">'
+      + '<span>传感器 <b>' + r.overview.sensorCount + '</b></span>'
+      + '<span>在线 <b class="ok">' + r.overview.online + '</b></span>'
+      + '<span>预警 <b>' + r.alertSummary.total + '</b></span>'
+      + '<span>未处置 <b class="warn">' + r.alertSummary.unhandled + '</b></span>'
+      + '<span>黄/橙/红 <b>' + (lv.YELLOW || 0) + '/' + (lv.ORANGE || 0) + '/' + (lv.RED || 0) + '</b></span>'
+      + '<span>' + fmtTime(r.createdAt) + '</span>'
+      + '</div>'
+      + '<div style="display:flex;gap:10px;margin-top:14px">'
+      + '<button class="btn sm solid" onclick="downloadReport(' + r.reportId + ',\'csv\')">⬇ 导出 CSV</button>'
+      + '<button class="btn sm green" onclick="downloadReport(' + r.reportId + ',\'xlsx\')">⬇ 导出 XLSX</button>'
+      + '<button class="btn sm amber" onclick="viewGen(' + r.reportId + ')">预览</button>'
+      + '</div>'
+      + '</div>';
+  }
+  async function downloadReport(id, fmt) {
+    try {
+      showToast(fmt === 'xlsx' ? '正在生成 Excel...' : '正在生成 CSV...');
+      const token = _sessionToken();
+      const resp = await fetch('/api/report/' + id + '/download?fmt=' + fmt, { headers: token ? { Authorization: 'Bearer ' + token } : {} });
+      if (!resp.ok) { showToast('导出失败(' + resp.status + ')'); return; }
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'report_' + id + '.' + fmt;
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+      showToast('已导出 .' + fmt.toUpperCase());
+    } catch (e) { showToast('导出失败：' + e.message); }
+  }
+  function viewGen(id) {
+    const r = (window._reports || []).find(x => x.id === id);
+    if (r) return viewReport(id);
+    fetch('/api/report/' + id + '/download?fmt=csv', { headers: window._token ? { Authorization: 'Bearer ' + window._token } : {} })
+      .then(res => res.text()).then(txt => {
+        openModal('<h3>' + ico('file', 16) + ' 报表预览</h3><div class="m-desc" style="white-space:pre-wrap;max-height:60vh;overflow:auto">' + esc(txt.slice(0, 4000)) + '</div><div class="m-actions"><button class="btn ghost" onclick="closeModal()">关闭</button></div>');
+      }).catch(() => showToast('预览失败'));
+  }
+
+  // 本文件顶层 async function 不会自动挂到 window，内联 onclick 需显式暴露
+  window.genTemplateReport = genTemplateReport;
+  window.downloadReport = downloadReport;
+
   async function loadReports() {
+    loadReportEngine();
     const list = await api('/analysis/reports');
     const arr = list || [];
     window._reports = arr;
@@ -541,8 +743,11 @@ if (session) {
       $('#dkOnline').textContent = online + '/' + payload.length;
       $('#dkTypes').textContent = new Set(payload.map(s => s.type)).size;
       $('#dkTotal').textContent = payload.length;
+      loadTrendChart(); loadThreat(); loadAlertStats(); loadTrendKpis();
+      return;
     }
-    loadTrendChart(); loadThreat(); loadAlertStats(); loadTrendKpis();
+    // 单对象广播：就地更新对应表行，不重建整表
+    if (payload && payload.id) applySingleSensor(payload);
   });
   wsClient.on('alert_update', () => { loadAlertStats(); });
   wsClient.connect('thinktank');

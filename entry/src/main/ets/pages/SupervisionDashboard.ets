@@ -6,7 +6,7 @@ import { router } from '@kit.ArkUI';
 import { promptAction } from '@kit.ArkUI';
 import dataPreferences from '@ohos.data.preferences';
 import { DataStore } from '../services/DataStore';
-import { MineInfo, DispatchRecord, BackendAlert, SupervisionOverview, clearAuthToken } from '../services/BackendApi';
+import { MineInfo, DispatchRecord, BackendAlert, SupervisionOverview, MineCompareItem, clearAuthToken, apiGetMineComparison } from '../services/BackendApi';
 import { Palette, ThemeMode, paletteFor, modeLabel, ensureThemeInit, switchThemeMode } from '../services/Theme';
 import { AccountPanel } from '../components/AccountPanel';
 import { RiskGauge } from '../components/RiskGauge';
@@ -24,6 +24,7 @@ interface TabItem {
 struct SupervisionDashboard {
   @State tabs: TabItem[] = [
     { label: '监控总览', icon: '🏛️' },
+    { label: '矿井对比', icon: '⚖️' },
     { label: '监管预警', icon: '🚨' },
     { label: '应急调度', icon: '🚑' },
     { label: '监管报告', icon: '📃' },
@@ -32,6 +33,7 @@ struct SupervisionDashboard {
   ];
   @State current: number = 0;
   @State fresh: number = 0;
+  @State compareItems: MineCompareItem[] = [];
   @State userName: string = '监管员';
   @State showCreate: boolean = false;
   @State dispatchTitle: string = '';
@@ -47,6 +49,7 @@ struct SupervisionDashboard {
       this.fresh++;
     });
     DataStore.refetch();
+    this.loadCompare();
   }
 
   private pal(): Palette {
@@ -64,6 +67,14 @@ struct SupervisionDashboard {
       this.userName = await prefs.get('displayName', '监管员') as string;
     } catch (e) {
       this.userName = '监管员';
+    }
+  }
+
+  private async loadCompare() {
+    try {
+      this.compareItems = await apiGetMineComparison();
+    } catch (e) {
+      console.warn('[compare]', JSON.stringify(e));
     }
   }
 
@@ -103,14 +114,16 @@ struct SupervisionDashboard {
           if (this.current === 0) {
             this.Overview()
           } else if (this.current === 1) {
-            this.Alert()
+            this.Compare()
           } else if (this.current === 2) {
-            this.Dispatch()
+            this.Alert()
           } else if (this.current === 3) {
+            this.Dispatch()
+          } else if (this.current === 4) {
             this.Report()
-          } else if (this.current === 4 || this.current === 5) {
+          } else if (this.current === 5 || this.current === 6) {
             AccountPanel({
-              mode: this.current === 4 ? 1 : 2,
+              mode: this.current === 5 ? 1 : 2,
               defaultName: '监管员',
               roleText: '监管端',
               accent: ACCENT,
@@ -277,6 +290,95 @@ struct SupervisionDashboard {
     .onClick(() => {
       router.pushUrl({ url: 'pages/CollaborationPage' });
     })
+  }
+
+  // ---------------- 矿井对比 ----------------
+  @Builder
+  Compare() {
+    Scroll() {
+      Column() {
+        this.panelTitle('多矿井横向对比', '按在线率排序')
+        Row() {
+          this.Kpi('🏭', '矿井', this.compareItems.length + '', '座')
+          this.Kpi('🚨', '未处置', this.compareItems.reduce((a, m) => a + m.unhandledAlert, 0) + '', '条')
+          this.Kpi('📡', '设备', this.compareItems.reduce((a, m) => a + m.sensorTotal, 0) + '', '台')
+        }
+        .width('100%')
+
+        // 排行列表
+        Column() {
+          ForEach(this.sortCompare(), (m: MineCompareItem) => {
+            Column() {
+              Row() {
+                Column() {
+                  Text(m.name)
+                    .fontSize(14)
+                    .fontWeight(FontWeight.Medium)
+                    .fontColor(this.pal().textMain)
+                  Text('设备 ' + m.sensorTotal + ' · 在线 ' + Math.round(m.onlineRate * 100) + '% · 未处置 ' + m.unhandledAlert)
+                    .fontSize(11)
+                    .fontColor(this.pal().textDim)
+                    .margin({ top: 3 })
+                }
+                .alignItems(HorizontalAlign.Start)
+                .layoutWeight(1)
+                Column() {
+                  Text(Math.round(m.onlineRate * 100) + '%')
+                    .fontSize(15)
+                    .fontWeight(FontWeight.Bold)
+                    .fontColor(this.lvColor(m.maxLevel) === '#E5484D' ? '#E5484D' : (m.unhandledAlert ? ACCENT : this.pal().textMain))
+                  Text(this.maxLvText(m.maxLevel))
+                    .fontSize(10)
+                    .fontColor(this.pal().textDim)
+                    .margin({ top: 2 })
+                }
+                .alignItems(HorizontalAlign.End)
+              }
+              .width('100%')
+
+              // 在线率条形
+              Row() {
+                Row()
+                  .width((46 + 50 * m.onlineRate).toString() + '%')
+                  .height(6)
+                  .borderRadius(3)
+                  .backgroundColor(this.maxLevelAccent(m.maxLevel))
+              }
+              .width('100%')
+              .margin({ top: 8 })
+            }
+            .width('100%')
+            .padding(12)
+            .backgroundColor(this.pal().card)
+            .borderRadius(10)
+            .margin({ bottom: 8 })
+          })
+        }
+        .width('100%')
+        .margin({ top: 4 })
+      }
+      .width('100%')
+      .padding({ left: 16, right: 16, top: 12, bottom: 20 })
+    }
+  }
+
+  private sortCompare(): MineCompareItem[] {
+    const list = this.compareItems.slice();
+    return list.sort((a, b) => (b.onlineRate - a.onlineRate));
+  }
+
+  private maxLvText(lv: string): string {
+    if (lv === 'RED') return '红色预警';
+    if (lv === 'ORANGE') return '橙色预警';
+    if (lv === 'YELLOW') return '黄色预警';
+    return '无预警';
+  }
+
+  private maxLevelAccent(lv: string): string {
+    if (lv === 'RED') return '#E5484D';
+    if (lv === 'ORANGE') return ACCENT;
+    if (lv === 'YELLOW') return '#FFC53D';
+    return '#34D399';
   }
 
   // ---------------- 监管预警 ----------------

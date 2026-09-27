@@ -46,6 +46,19 @@ const sensorController = {
         } catch (error) { next(error); }
     },
 
+    async getHistory(req, res, next) {
+        try {
+            const { from, to, interval } = req.query;
+            const sensor = await sensorService.getSensorById(req.params.id);
+            if (!sensor) return res.status(404).json({ error: 'Sensor not found' });
+            const [points, sources] = await Promise.all([
+                sensorService.getHistory(sensor.id, { from, to, interval }),
+                sensorService.getSourceDistribution(sensor.id, { from, to })
+            ]);
+            res.json({ sensorId: sensor.id, name: sensor.name, interval: interval || 'minute', points, sources });
+        } catch (error) { next(error); }
+    },
+
     async getThresholds(req, res, next) {
         try {
             res.json(await sensorService.getThresholds());

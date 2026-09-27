@@ -14,6 +14,7 @@ import { AccountPanel } from '../components/AccountPanel';
 import { RiskGauge } from '../components/RiskGauge';
 import { ClosedLoop } from '../components/ClosedLoop';
 import { FusedTrend } from '../components/FusedTrend';
+import { SensorHistoryPanel } from '../components/SensorHistoryPanel';
 
 const ACCENT = '#FF8C2A';
 
@@ -35,7 +36,8 @@ struct EnterpriseDashboard {
   ];
   @State current: number = 0;
   @State fresh: number = 0;
-  @State userName: string = '企业监管员';
+  @State userName: string = '企业监控员';
+  @State history: BackendSensor | null = null;
   @State thresholds: ThresholdSetting[] = [];
   @State thrInputs: string[] = [];
   @StorageProp('theme_mode') themeMode: number = ThemeMode.NIGHT;
@@ -148,7 +150,7 @@ struct EnterpriseDashboard {
   @Builder
   CollabCard() {
     Row() {
-      MineIcon({ name: 'link', size: 20, color: ACCENT })
+      MineIcon({ name: 'link', iconSize: 20, color: ACCENT })
       Column() {
         Text('三端协同')
           .fontSize(15)
@@ -267,7 +269,8 @@ struct EnterpriseDashboard {
   }
 
   build() {
-    Column() {
+    Stack() {
+      Column() {
       // 顶部状态栏
       Row() {
         Text('‹')
@@ -326,7 +329,7 @@ struct EnterpriseDashboard {
       Row() {
         ForEach(this.tabs, (item: TabItem, index: number) => {
           Column() {
-            MineIcon({ name: item.icon, size: 17, color: this.current === index ? ACCENT : this.pal().textDim })
+            MineIcon({ name: item.icon, iconSize: 17, color: this.current === index ? ACCENT : this.pal().textDim })
             Text(item.label)
               .fontSize(11)
               .fontColor(this.current === index ? ACCENT : this.pal().textDim)
@@ -351,9 +354,44 @@ struct EnterpriseDashboard {
       .padding({ top: 8, bottom: 10 })
       .backgroundColor(this.pal().headerBg)
     }
+      .width('100%')
+      .height('100%')
+      .backgroundColor(this.pal().bgApp)
+
+      if (this.history) {
+        this.HistoryOverlay()
+      }
+    }
     .width('100%')
     .height('100%')
     .backgroundColor(this.pal().bgApp)
+  }
+
+  // ---------------- 历史趋势面板浮层 ----------------
+  @Builder
+  HistoryOverlay() {
+    if (this.history) {
+      Stack() {
+        Column()
+          .width('100%')
+          .height('100%')
+          .backgroundColor('#99000000')
+        Column() {
+          SensorHistoryPanel({
+            sensorId: this.history.id,
+            sensorName: this.history.name,
+            onClose: () => this.history = null
+          })
+        }
+        .width('92%')
+        .padding(12)
+        .backgroundColor(this.pal().bgApp)
+        .borderRadius(16)
+      }
+      .width('100%')
+      .height('100%')
+      .onClick(() => this.history = null)
+    }
   }
 
   private doLogout() {
@@ -448,7 +486,7 @@ struct EnterpriseDashboard {
         Column() {
           ForEach(DataStore.getSensors(), (s: BackendSensor) => {
             Row() {
-              MineIcon({ name: this.iconOf(s.type), size: 18, color: this.pal().textDim })
+              MineIcon({ name: this.iconOf(s.type), iconSize: 18, color: this.pal().textDim })
                 .width(36)
               Column() {
                 Text(s.name)
@@ -467,6 +505,14 @@ struct EnterpriseDashboard {
                 .fontSize(16)
                 .fontWeight(FontWeight.Bold)
                 .fontColor(DataStore.isOver(s) ? '#E5484D' : '#3DDC84')
+              Text('趋势')
+                .fontSize(11)
+                .fontColor(ACCENT)
+                .padding({ left: 8, right: 8, top: 4, bottom: 4 })
+                .borderRadius(10)
+                .backgroundColor(this.pal().field)
+                .margin({ left: 8 })
+                .onClick(() => this.history = s)
               Column()
                 .width(8)
                 .height(8)
@@ -636,6 +682,15 @@ struct EnterpriseDashboard {
             .backgroundColor(this.lvColor(a.level))
             .borderRadius(8)
             .margin({ left: 8 })
+          if (a.raised_count > 0) {
+            Text('已升级×' + a.raised_count)
+              .fontSize(10)
+              .fontColor(this.pal().textMain)
+              .padding({ left: 6, right: 6, top: 2, bottom: 2 })
+              .backgroundColor(this.lvColor(a.level))
+              .borderRadius(8)
+              .margin({ left: 6 })
+          }
         }
         Text(a.message)
           .fontSize(12)
@@ -666,6 +721,15 @@ struct EnterpriseDashboard {
           .padding({ left: 10, right: 10, top: 3, bottom: 3 })
           .backgroundColor(this.lvColor(a.level))
           .borderRadius(8)
+        if (a.raised_count > 0) {
+          Text('已升级×' + a.raised_count)
+            .fontSize(10)
+            .fontColor(this.pal().textMain)
+            .padding({ left: 8, right: 8, top: 2, bottom: 2 })
+            .backgroundColor(this.lvColor(a.level))
+            .borderRadius(8)
+            .margin({ top: 4 })
+        }
       }
       Column() {
         Text(a.sensor_name)

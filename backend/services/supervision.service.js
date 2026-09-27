@@ -43,6 +43,46 @@ const supervisionService = {
     },
 
     /**
+     * 监管端 · 多矿井横向对比看板
+     * 每矿聚合：在线率、平均测值、未处置预警数、处置率、预警等级分布
+     */
+    async getMineComparison() {
+        const mines = await this.getMines();
+
+        // 预警按矿井聚合（max_level 按严重度 RED>ORANGE>YELLOW）
+        const alertAgg = await query(
+            `SELECT mine_id,
+                    COUNT(*)::int AS total,
+                    COUNT(*) FILTER (WHERE handled = FALSE)::int AS unhandled,
+                    COUNT(*) FILTER (WHERE handled = TRUE)::int AS handled,
+                    (MAX(CASE level WHEN 'RED' THEN 3 WHEN 'ORANGE' THEN 2 WHEN 'YELLOW' THEN 1 END) FILTER (WHERE handled = FALSE)) AS max_sev
+             FROM alerts GROUP BY mine_id`
+        );
+        const alertMap = {};
+        alertAgg.forEach(r => {
+            alertMap[r.mine_id] = { ...r, max_level: r.max_sev === 3 ? 'RED' : r.max_sev === 2 ? 'ORANGE' : r.max_sev === 1 ? 'YELLOW' : null };
+        });
+
+        const zeroValue = { total: 0, unhandled: 0, handled: 0, max_level: null };
+
+        return mines.map(m => {
+            const agg = alertMap[m.id] || zeroValue;
+            const handledRate = agg.total > 0 ? agg.handled / agg.total : 1;
+            const onlineRate = m.sensorTotal > 0 ? m.online / m.sensorTotal : 0;
+
+            return {
+                ...m,
+                onlineRate: +onlineRate.toFixed(2),
+                handledRate: +handledRate.toFixed(2),
+                totalAlerts: agg.total,
+                unhandledAlert: agg.unhandled,
+                handledAlert: agg.handled,
+                maxLevel: agg.max_level
+            };
+        });
+    },
+
+    /**
      * 应急调度记录
      */
     async getDispatches() {

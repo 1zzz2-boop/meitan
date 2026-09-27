@@ -9,8 +9,9 @@
 // 注意：反向代理部署（带域名）时需把 host 改为实际域名。
 const _proto  = (location.protocol === 'https:') ? 'https' : 'http';
 const _wsProto = _proto === 'https' ? 'wss' : 'ws';
-const API_BASE = _proto + '://localhost:3000/api';
-const WS_URL   = _wsProto + '://localhost:8080';
+const _host   = location.hostname || 'localhost';
+const API_BASE = _proto + '://' + _host + ':3000/api';
+const WS_URL   = _wsProto + '://' + _host + ':8080';
 
 /* ---------------- 工具函数 ---------------- */
 const $ = (s) => document.querySelector(s);
@@ -331,7 +332,9 @@ function renderHBar(sel, items) {
     return `<div style="margin-bottom:12px">
       <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px">
         <span>${esc(it.label)}</span>
-        <span style="font-family:var(--mono)">${fmt2(it.value)}${esc(it.unit || '')} <span style="color:${c};font-weight:700">${it.pct}%</span></span>
+        ${it.pct > 0
+          ? `<span style="font-family:var(--mono)"><span style="color:${c};font-weight:700">${it.pct}%</span>${(it.hint ? ' <span style="color:var(--muted)">' + esc(it.hint) + '</span>' : '')}</span>`
+          : `<span style="font-family:var(--mono);color:var(--muted)">${it.hint || '暂无数据'}</span>`}
       </div>
       <div class="bar" style="height:9px"><i style="width:${Math.min(100, it.pct)}%;background:${c}"></i></div>
     </div>`;

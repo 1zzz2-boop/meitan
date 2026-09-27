@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>数据接入监视 · 深地智控</title>
+<style>
+  :root{--bg:#0b1220;--panel:#111a2b;--line:#24324a;--txt:#d7e0ee;--mut:#7a8799;--green:#2bd08b;--amber:#f0a63a;--red:#ff5a67;--cyan:#2facff;--mono:'IBM Plex Mono',Consolas,monospace;}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--txt);font-family:'Noto Sans SC','Microsoft YaHei',sans-serif;padding:18px}
+  .hd{display:flex;align-items:center;gap:14px;margin-bottom:14px}
+  .hd h1{font-size:18px;font-weight:600}
+  .hd .sub{color:var(--mut);font-size:12px}
+  .dot{width:10px;height:10px;border-radius:50%;background:#888}
+  .dot.on{background:var(--green);box-shadow:0 0 8px var(--green)}
+  .dot.off{background:#666}
+  .stat{font-size:12px;color:var(--mut);font-family:var(--mono)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px;min-height:92px;transition:border-color .2s}
+  .card.flash{border-color:var(--cyan)}
+  .card .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+  .card .name{font-size:14px;font-weight:600}
+  .card .id{font-size:11px;color:var(--mut);font-family:var(--mono)}
+  .card .val{font-size:26px;font-weight:600;font-family:var(--mono);margin:6px 0 2px}
+  .card .val em{font-size:12px;color:var(--mut);font-style:normal;font-weight:400}
+  .card .meta{font-size:11px;color:var(--mut);font-family:var(--mono)}
+  .st{font-size:11px;padding:2px 7px;border-radius:5px}
+  .st.on{color:var(--green);background:rgba(43,208,139,.12)}
+  .st.off{color:var(--mut);background:rgba(122,135,153,.12)}
+  .empty{color:var(--mut);padding:40px;text-align:center;grid-column:1/-1}
+  .log{background:#0e1626;border:1px solid var(--line);border-radius:10px;margin-top:14px;padding:10px;font-family:var(--mono);font-size:12px;max-height:220px;overflow:auto}
+  .log .row{line-height:1.7;white-space:nowrap}
+  .log .t{color:#5a6b82}.log .o{color:var(--green)}.log .k{color:var(--cyan)}
+</style>
+</head>
+<body>
+  <div class="hd">
+    <span class="dot off" id="dot"></span>
+    <h1>数据接入监视</h1>
+    <span class="sub">硬件端 / VR端 实时上报 · WebSocket 实时通道</span>
+    <span class="stat" id="stat">通道检测中…</span>
+  </div>
+  <div class="grid" id="grid"><div class="empty">等待数据…</div></div>
+  <div class="log" id="log"></div>
+
+<script>
+const grid=document.getElementById('grid'), dot=document.getElementById('dot'),
+      stat=document.getElementById('stat'), logEl=document.getElementById('log');
+const store={}; let conn=false;
+// WS 地址由当前页面 host 派生，避免 localhost 写死（localhost 时兼容不变）
+const WS_URL=(location.protocol==='https:'?'wss':'ws')+'://'+(location.hostname||'localhost')+':8080';
+
+function fmtTime(t){ if(!t) return '--'; try{ const d=new Date(t); return d.toLocaleTimeString('zh-CN',{hour12:false})+'.'+String(d.getMilliseconds()).padStart(3,'0'); }catch(e){ return '--'; } }
+function esc(s){ return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function tshot(v){ return /^[-+]?\d+(\.\d+)?$/.test(String(v)); }
+
+function upsert(s){
+  if(!s||!s.id) return;
+  const old=store[s.id];
+  store[s.id]=s;
+  let el=document.querySelector('.card[data-id="'+s.id+'"]');
+  if(!el){ el=document.createElement('div'); el.className='card'; el.dataset.id=s.id; grid.appendChild(el); }
+  const on=s.status==='ONLINE';
+  const val = tshot(s.value) ? (Math.round(s.value*100)/100).toFixed(2) : (s.value==null?'--':s.value);
+  el.innerHTML =
+    '<div class="top"><span class="name">'+esc(s.name||s.id)+'</span><span class="st '+(on?'on':'off')+'">'+(on?'在线':'离线')+'</span></div>'+
+    '<div class="id">'+esc(s.id)+' · '+esc(s.type||'')+(s.source?' · <b style="color:'+(s.source==='udp'?'var(--cyan)':'var(--amber)')+'">'+esc(s.source)+'</b> '+(s.source_addr?esc(s.source_addr):''):'')+'</div>'+
+    '<div class="val">'+val+'<em>'+esc(s.unit||'')+'</em></div>'+
+    '<div class="meta">'+fmtTime(s.updated_at)+'</div>';
+  el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
+  log('[sensor_update] '+esc(s.id)+' = '+val+' '+(s.unit||''));
+  if(!old){ // 新卡片排序
+    const arr=[...grid.children].sort((a,b)=>a.dataset.id.localeCompare(b.dataset.id));
+    arr.forEach(n=>grid.appendChild(n));
+  }
+}
+function onMsg(msg){
+  if(!msg) return;
+  const p = msg.payload !== undefined ? msg.payload : (msg.data !== undefined ? msg.data : msg);
+  const t = msg.type;
+  if(Array.isArray(p)){                       // 全量数组快照：SENSORS 全集 / 数组型负载
+    if(t==='sensor_stats'){ stat.textContent='传感器统计 · 共'+p.length; return; }
+    grid.innerHTML=''; clearStore();
+    (p||[]).forEach(upsert);
+    return;
+  }
+  if(t==='sensor_stats' && p && typeof p==='object'){
+    stat.textContent='传感器统计 · 共'+(p.total??'-')+' · 在线'+(p.online??'-')+' · 预警'+(p.warning??'-');
+    return;
+  }
+  if(t==='connection_status' && p){ stat.textContent='通道就绪 · 客户端 '+((p&&p.clientId)||''); return; }
+  if(Array.isArray(p&&p.sensors)){ p.sensors.forEach(upsert); return; }
+  if(p && p.id){ upsert(p); return; }
+  stat.textContent='收到消息 · type='+t+' · '+new Date().toLocaleTimeString('zh-CN',{hour12:false});
+}
+function clearStore(){
+  const k=Object.keys(store); k.forEach(x=>delete store[x]);
+}
+function log(s){
+  const row=document.createElement('div'); row.className='row';
+  row.innerHTML='<span class="t">['+new Date().toLocaleTimeString('zh-CN',{hour12:false})+']</span> <span class="o">'+(s||'')+'</span>';
+  logEl.prepend(row);
+  while(logEl.childNodes.length>300) logEl.lastChild.remove();
+}
+function connect(){
+  let ws;
+  try{ ws=new WebSocket(WS_URL); }catch(e){ conn=false; dot.className='dot off'; stat.textContent='WebSocket 创建失败'; setTimeout(connect,3000); return; }
+  ws.onopen=()=>{ conn=true; dot.className='dot on'; stat.textContent='已连接 '+WS_URL+' · '+new Date().toLocaleTimeString('zh-CN',{hour12:false}); log('通道已连接'); };
+  ws.onmessage=(ev)=>{ let msg=null; try{ msg=JSON.parse(ev.data); }catch(e){} if(msg) onMsg(msg); };
+  ws.onclose=()=>{ conn=false; dot.className='dot off'; stat.textContent='通道已断开 · 3秒重连'; log('通道断开'); setTimeout(connect,3000); };
+  ws.onerror=()=>{ try{ws.close();}catch(e){} };
+}
+
+// 初始填充与增量更新均由 WS 全量/单对象快照驱动（onMsg→upsert），无需额外拉取
+connect();
+</script>
+</body>
+</html>

@@ -76,9 +76,26 @@ CREATE TABLE sensor_history (
     id          BIGSERIAL PRIMARY KEY,
     sensor_id   VARCHAR(64) NOT NULL,
     value       FLOAT NOT NULL,
+    source      VARCHAR(32),
+    source_addr VARCHAR(128),
     created_at  TIMESTAMP DEFAULT now()
 );
+CREATE INDEX idx_history_source ON sensor_history(source);
 CREATE INDEX idx_history_sensor ON sensor_history(sensor_id, created_at DESC);
+
+-- ---------- 历史数据归档（P2-3.7，超过 ARCHIVE_DAYS 的明细按聚合迁入） ----------
+CREATE TABLE IF NOT EXISTS sensor_history_archive (
+    dim         VARCHAR(16) NOT NULL CHECK (dim IN ('hour', 'day')),
+    sensor_id   VARCHAR(64) NOT NULL,
+    bucket_start TIMESTAMP NOT NULL,
+    avg         FLOAT,
+    min         FLOAT,
+    max         FLOAT,
+    samples     BIGINT DEFAULT 0,
+    updated_at  TIMESTAMP DEFAULT now(),
+    PRIMARY KEY (dim, sensor_id, bucket_start)
+);
+CREATE INDEX IF NOT EXISTS idx_archive_sensor ON sensor_history_archive(sensor_id, bucket_start);
 
 -- ---------- 预警 ----------
 CREATE TABLE alerts (
@@ -93,6 +110,10 @@ CREATE TABLE alerts (
     handler     VARCHAR(64),
     handled_at  TIMESTAMP,
     mine_id     INTEGER REFERENCES mine(id),
+    -- 预警升级状态机
+    raised_count INT DEFAULT 0,          -- 已升级次数
+    escalated_at TIMESTAMP,              -- 当前级别起始时间（用于判定是否触发升级）
+    escalation_note VARCHAR(255),        -- 升级说明（如「已上报监管端」）
     created_at  TIMESTAMP DEFAULT now()
 );
 CREATE INDEX idx_alerts_created ON alerts(created_at DESC);

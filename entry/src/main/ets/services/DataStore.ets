@@ -68,11 +68,29 @@ export class DataStore {
     DataStore.refresh();
 
     realtimeClient.on('sensor_update', (payload: Object) => {
+      // 后端同时推送：硬件单帧=单对象（即时）、周期全量=数组（~2秒兜底）
       if (Array.isArray(payload)) {
         DataStore.sensors = payload as BackendSensor[];
-        DataStore.deriveAnalysis();
-        DataStore.bump();
+      } else {
+        if (payload === null || payload === undefined) return;
+        const one = payload as BackendSensor;
+        if (!one.id) return;
+        // 增量合并：只替换对应传感器，保留其余数据
+        let merged: BackendSensor[] = [];
+        let hit = false;
+        for (const s of DataStore.sensors) {
+          if (s.id === one.id) {
+            merged.push(one);
+            hit = true;
+          } else {
+            merged.push(s);
+          }
+        }
+        if (!hit) merged.push(one);
+        DataStore.sensors = merged;
       }
+      DataStore.deriveAnalysis();
+      DataStore.bump();
     });
     realtimeClient.on('alert_update', (payload: Object) => {
       const alert = payload as BackendAlert;
@@ -411,12 +429,12 @@ export class DataStore {
       {
         id: 'alert_demo_1', sensor_id: 'sensor_strain', sensor_name: '锚杆弯折', level: 'ORANGE',
         message: '锚杆弯折超过预警阈值', value: 34.2, threshold: 30, handled: false,
-        handler: '', created_at: new Date().toISOString()
+        handler: '', created_at: new Date().toISOString(), raised_count: 0, escalation_note: ''
       },
       {
         id: 'alert_demo_2', sensor_id: 'sensor_vibration', sensor_name: '震动传感器', level: 'YELLOW',
         message: '震动强度偏高，建议关注', value: 1.7, threshold: 1.5, handled: false,
-        handler: '', created_at: new Date(Date.now() - 3600 * 1000).toISOString()
+        handler: '', created_at: new Date(Date.now() - 3600 * 1000).toISOString(), raised_count: 0, escalation_note: ''
       }
     ];
     const thresholds: ThresholdSetting[] = [

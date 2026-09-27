@@ -51,7 +51,7 @@ export const DOT_COLORS: Record<string, string> = {
 @Component
 export struct MineIcon {
   @Prop name: string = 'pick';
-  @Prop size: number = 16;
+  @Prop iconSize: number = 16;
   @Prop color: string = '#E6E9EE';
   @Prop strokeWidth: number = 1.7;
 
@@ -59,8 +59,8 @@ export struct MineIcon {
     if (this.name === 'dot-red' || this.name === 'dot-orange' ||
       this.name === 'dot-amber' || this.name === 'dot-green') {
       Circle()
-        .width(this.size)
-        .height(this.size)
+        .width(this.iconSize)
+        .height(this.iconSize)
         .fill(DOT_COLORS[this.name] as string)
     } else {
       Shape() {
@@ -68,15 +68,15 @@ export struct MineIcon {
           .commands(ICON_PATHS[this.name] as string)
           .fill('none')
           .stroke(this.color)
-          .strokeWidth(this.strokeWidth * 24 / this.size)
+          .strokeWidth(this.strokeWidth * 24 / this.iconSize)
           .strokeLineCap(LineCapStyle.Round)
           .strokeLineJoin(LineJoinStyle.Round)
           .width(24)
           .height(24)
-          .scale({ x: this.size / 24, y: this.size / 24 })
+          .scale({ x: this.iconSize / 24, y: this.iconSize / 24 })
       }
-      .width(this.size)
-      .height(this.size)
+      .width(this.iconSize)
+      .height(this.iconSize)
     }
   }
 }

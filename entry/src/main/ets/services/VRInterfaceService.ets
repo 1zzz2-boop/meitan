@@ -19,6 +19,7 @@
  */
 
 import { hilog } from '@kit.PerformanceAnalysisKit';
+import { apiUdpForward, RealtimeClient, UdpForwardFramePayload, UdpForwardResult } from './BackendApi';
 
 const DOMAIN = 0x0000;
 const TAG = 'VRInterfaceService';
@@ -609,6 +610,41 @@ export class VRInterfaceService {
     // 优化光照计算
     // 启用LOD(Level of Detail)
     hilog.info(DOMAIN, TAG, '场景性能优化已执行');
+  }
+
+  // ========================================
+  // 实时数据接入（VR 虚拟端双向 UDP，经后端转发）
+  // ========================================
+
+  /** 订阅后端实时传感器数据（WebSocket sensor_update）。返回取消函数 */
+  public subscribeSensors(cb: (payload: Object) => void): () => void {
+    const realtime = RealtimeClient.getInstance();
+    realtime.on('sensor_update', cb);
+    realtime.on('sensor_stats', cb);
+    realtime.connect('vr');
+    hilog.info(DOMAIN, TAG, '已订阅传感器实时数据');
+    // 仅移除本订阅的回调；不断开 WS（该通道为全局单例，DataStore 三端仪表盘共用）
+    return () => {
+      realtime.off('sensor_update', cb);
+      realtime.off('sensor_stats', cb);
+      hilog.info(DOMAIN, TAG, '已取消传感器实时数据订阅');
+    };
+  }
+
+  /** 发送 VR 虚拟帧（落库并广播，模拟硬件上报） */
+  public async sendFrame(sensorId: string, value: number): Promise<UdpForwardResult> {
+    const payload: UdpForwardFramePayload = { mode: 'frame', sensorId, value };
+    const r = await apiUdpForward(payload);
+    hilog.info(DOMAIN, TAG, '发送 VR 虚拟帧 %{public}s=%{public}f', sensorId, value);
+    return r;
+  }
+
+  /** 向指定硬件 ip:port 发送 UDP 控制指令（经后端转发） */
+  public async sendCommand(ip: string, port: number, payload: string): Promise<UdpForwardResult> {
+    const body: UdpForwardFramePayload = { mode: 'cmd', ip, port, payload };
+    const r = await apiUdpForward(body);
+    hilog.info(DOMAIN, TAG, '转发控制指令 → %{public}s:%{public}d', ip, port);
+    return r;
   }
 }
 

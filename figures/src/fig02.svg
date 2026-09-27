@@ -1,0 +1,131 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="700" viewBox="0 0 1400 700">
+<style>
+text{font-family:"Microsoft YaHei",SimHei,sans-serif}
+.t-head{font-size:22px;font-weight:bold;fill:#FFFFFF}
+.t-main{font-size:18px;font-weight:bold;fill:#23272B}
+.t-mainw{font-size:18px;font-weight:bold;fill:#FFFFFF}
+.t-sub{font-size:15px;fill:#5A6169}
+.t-subw{font-size:15px;fill:#FFFFFF}
+.t-note{font-size:17px;fill:#5A6169}
+.t-ch{font-size:15px;fill:#5A6169}
+.t-line{stroke:#E8761F;stroke-width:2.5;fill:none}
+</style>
+<defs>
+<marker id="arw" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><polygon points="0,0 10,4 0,8" fill="#E8761F"/></marker>
+<marker id="arwg" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><polygon points="0,0 10,4 0,8" fill="#5A6169"/></marker>
+</defs>
+<rect x="0" y="0" width="1400" height="700" fill="#FFFFFF"/>
+
+<!-- ================= 段1 感知单元 ================= -->
+<rect x="36" y="68" width="294" height="528" rx="8" fill="#F5F6F7" stroke="#C9CED3" stroke-width="2"/>
+<path d="M 44 68 H 322 A 8 8 0 0 1 330 76 V 116 H 36 V 76 A 8 8 0 0 1 44 68 Z" fill="#2E3236"/>
+<text class="t-head" x="183" y="102" text-anchor="middle">第1段 感知单元</text>
+
+<rect x="52" y="134" width="262" height="64" rx="6" fill="#EDEFF1" stroke="#C9CED3" stroke-width="2"/>
+<text class="t-main" x="183" y="160" text-anchor="middle">薄膜压力</text>
+<text class="t-sub" x="183" y="182" text-anchor="middle">支架阻力</text>
+
+<rect x="52" y="210" width="262" height="64" rx="6" fill="#EDEFF1" stroke="#C9CED3" stroke-width="2"/>
+<text class="t-main" x="183" y="236" text-anchor="middle">超声波测距</text>
+<text class="t-sub" x="183" y="258" text-anchor="middle">顶板位移</text>
+
+<rect x="52" y="286" width="262" height="64" rx="6" fill="#EDEFF1" stroke="#C9CED3" stroke-width="2"/>
+<text class="t-main" x="183" y="312" text-anchor="middle">应变片</text>
+<text class="t-sub" x="183" y="334" text-anchor="middle">锚杆载荷</text>
+
+<rect x="52" y="362" width="262" height="64" rx="6" fill="#EDEFF1" stroke="#C9CED3" stroke-width="2"/>
+<text class="t-main" x="183" y="388" text-anchor="middle">投入式压力变送器</text>
+<text class="t-sub" x="183" y="410" text-anchor="middle">岩溶水压</text>
+
+<rect x="52" y="438" width="262" height="64" rx="6" fill="#EDEFF1" stroke="#C9CED3" stroke-width="2"/>
+<text class="t-main" x="183" y="464" text-anchor="middle">电化学传感</text>
+<text class="t-sub" x="183" y="486" text-anchor="middle">MQ2 · CO₂ · SO₂</text>
+
+<rect x="52" y="514" width="262" height="64" rx="6" fill="#EDEFF1" stroke="#C9CED3" stroke-width="2"/>
+<text class="t-main" x="183" y="540" text-anchor="middle">温湿度传感</text>
+<text class="t-sub" x="183" y="562" text-anchor="middle">巷道环境量</text>
+
+<!-- ================= 段2 调理汇集 ================= -->
+<rect x="381" y="68" width="294" height="528" rx="8" fill="#F5F6F7" stroke="#C9CED3" stroke-width="2"/>
+<path d="M 389 68 H 667 A 8 8 0 0 1 675 76 V 116 H 381 V 76 A 8 8 0 0 1 389 68 Z" fill="#2E3236"/>
+<text class="t-head" x="528" y="102" text-anchor="middle">第2段 调理汇集</text>
+
+<rect x="397" y="148" width="262" height="84" rx="6" fill="#EDEFF1" stroke="#C9CED3" stroke-width="2"/>
+<text class="t-main" x="528" y="182" text-anchor="middle">信号调理</text>
+<text class="t-sub" x="528" y="210" text-anchor="middle">标定系数表</text>
+
+<path class="t-line" d="M 528 232 L 528 264" marker-end="url(#arw)"/>
+
+<rect x="397" y="268" width="262" height="180" rx="6" fill="#EDEFF1" stroke="#C9CED3" stroke-width="2"/>
+<text class="t-main" x="528" y="304" text-anchor="middle">STM32 七路采集</text>
+<path d="M 427 326 H 629" stroke="#C9CED3" stroke-width="1.5" fill="none"/>
+<text class="t-ch" x="528" y="358" text-anchor="middle">weight · yewei · fsr</text>
+<text class="t-ch" x="528" y="386" text-anchor="middle">distance · mq2_adc</text>
+<text class="t-ch" x="528" y="414" text-anchor="middle">temp · humidity</text>
+
+<path class="t-line" d="M 528 448 L 528 480" marker-end="url(#arw)"/>
+
+<rect x="397" y="484" width="262" height="84" rx="6" fill="#EDEFF1" stroke="#C9CED3" stroke-width="2"/>
+<text class="t-main" x="528" y="518" text-anchor="middle">RS485 / CAN / 4–20 mA</text>
+<text class="t-sub" x="528" y="546" text-anchor="middle">标准工业接口</text>
+
+<!-- ================= 段3 通信回传 ================= -->
+<rect x="725" y="68" width="294" height="528" rx="8" fill="#F5F6F7" stroke="#C9CED3" stroke-width="2"/>
+<path d="M 733 68 H 1011 A 8 8 0 0 1 1019 76 V 116 H 725 V 76 A 8 8 0 0 1 733 68 Z" fill="#2E3236"/>
+<text class="t-head" x="872" y="102" text-anchor="middle">第3段 通信回传</text>
+
+<rect x="741" y="132" width="262" height="88" rx="6" fill="#EDEFF1" stroke="#C9CED3" stroke-width="2"/>
+<text class="t-main" x="872" y="170" text-anchor="middle">串口 / ESP8266</text>
+<text class="t-sub" x="872" y="198" text-anchor="middle">现场数据接入</text>
+
+<path class="t-line" d="M 872 220 L 872 248" marker-end="url(#arw)"/>
+
+<rect x="741" y="252" width="262" height="88" rx="6" fill="#EDEFF1" stroke="#C9CED3" stroke-width="2"/>
+<text class="t-main" x="872" y="290" text-anchor="middle">LoRa Mesh</text>
+<text class="t-sub" x="872" y="318" text-anchor="middle">自组网 · 多跳中继</text>
+
+<path class="t-line" d="M 872 340 L 872 368" marker-end="url(#arw)"/>
+
+<rect x="741" y="372" width="262" height="88" rx="6" fill="#E8761F" stroke="#B8560F" stroke-width="2"/>
+<text class="t-mainw" x="872" y="410" text-anchor="middle">边缘网关</text>
+<text class="t-subw" x="872" y="438" text-anchor="middle">协议转换 · 断点续传</text>
+
+<path class="t-line" d="M 872 460 L 872 488" marker-end="url(#arw)"/>
+
+<rect x="741" y="492" width="262" height="88" rx="6" fill="#EDEFF1" stroke="#C9CED3" stroke-width="2"/>
+<text class="t-main" x="872" y="530" text-anchor="middle">MQTT 上报</text>
+<text class="t-sub" x="872" y="558" text-anchor="middle">UDP 备份通道</text>
+
+<!-- ================= 段4 就地执行 ================= -->
+<rect x="1070" y="68" width="294" height="528" rx="8" fill="#F5F6F7" stroke="#C9CED3" stroke-width="2"/>
+<path d="M 1078 68 H 1356 A 8 8 0 0 1 1364 76 V 116 H 1070 V 76 A 8 8 0 0 1 1078 68 Z" fill="#2E3236"/>
+<text class="t-head" x="1217" y="102" text-anchor="middle">第4段 就地执行</text>
+
+<rect x="1086" y="132" width="262" height="118" rx="6" fill="#EDEFF1" stroke="#C9CED3" stroke-width="2"/>
+<text class="t-main" x="1217" y="182" text-anchor="middle">OLED 就地显示</text>
+<text class="t-sub" x="1217" y="210" text-anchor="middle">井下现场读数</text>
+
+<path class="t-line" d="M 1217 250 L 1217 293" marker-end="url(#arw)"/>
+
+<rect x="1086" y="297" width="262" height="118" rx="6" fill="#EDEFF1" stroke="#C9CED3" stroke-width="2"/>
+<text class="t-main" x="1217" y="347" text-anchor="middle">声光告警</text>
+<text class="t-sub" x="1217" y="375" text-anchor="middle">超限即时报警</text>
+
+<path class="t-line" d="M 1217 415 L 1217 458" marker-end="url(#arw)"/>
+
+<rect x="1086" y="462" width="262" height="118" rx="6" fill="#EDEFF1" stroke="#C9CED3" stroke-width="2"/>
+<text class="t-main" x="1217" y="512" text-anchor="middle">接收阈值热更新</text>
+<text class="t-sub" x="1217" y="540" text-anchor="middle">响应 /thr 下行指令</text>
+
+<!-- ================= 段间箭头 ================= -->
+<path class="t-line" d="M 334 356 L 375 356" marker-end="url(#arw)"/>
+<path class="t-line" d="M 679 356 L 719 356" marker-end="url(#arw)"/>
+<path class="t-line" d="M 1023 356 L 1064 356" marker-end="url(#arw)"/>
+
+<!-- ================= 底部旁注 ================= -->
+<rect x="36" y="612" width="664" height="56" rx="8" fill="#FFFFFF" stroke="#C9CED3" stroke-width="2" stroke-dasharray="8 6"/>
+<text class="t-note" x="368" y="646" text-anchor="middle">供电与功耗：本安供电，低功耗休眠采集</text>
+
+<rect x="700" y="612" width="664" height="56" rx="8" fill="#FFFFFF" stroke="#C9CED3" stroke-width="2" stroke-dasharray="8 6"/>
+<text class="t-note" x="1032" y="646" text-anchor="middle">环境防护：巷道粉尘、潮湿工况长期稳定运行</text>
+</svg>

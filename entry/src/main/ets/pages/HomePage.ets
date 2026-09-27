@@ -36,7 +36,7 @@ struct HomePage {
         // 顶栏：品牌区（统一品牌名）
         Column() {
           Row() {
-            MineIcon({ name: 'pick', size: 20, color: ORANGE })
+            MineIcon({ name: 'pick', iconSize: 20, color: ORANGE })
               .margin({ right: 8 })
             Text('深地智控 · 煤矿顶板智能预警平台')
               .fontSize(12)
@@ -175,7 +175,7 @@ struct HomePage {
   StatusTag(icon: string, title: string, value: string, color: string) {
     Column() {
       Row() {
-        MineIcon({ name: icon, size: 13, color: color, strokeWidth: 1.8 })
+        MineIcon({ name: icon, iconSize: 13, color: color, strokeWidth: 1.8 })
           .margin({ right: 5 })
         Text(title)
           .fontSize(11)

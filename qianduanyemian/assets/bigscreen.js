@@ -797,22 +797,54 @@ function applyFallback() {
   Object.entries(FALLBACK).forEach(([id, s]) => { SENSORS[id] = { ...s, id }; pushHistory(id, s.value); });
 }
 
+/* 单对象实时更新：就地刷新对应点位/列表项/KPI，不整页重建场景 */
+function applySingleSensor(s) {
+  if (!s || !s.id) return;
+  if (demo.sid === s.id && demo.phase !== 'idle') return; // 演示期间忽略服务端覆盖
+  if (LOCAL_THR[s.id] !== undefined) s = { ...s, threshold: LOCAL_THR[s.id] }; // 保留本地演示阈值
+  SENSORS[s.id] = s;
+  pushHistory(s.id, s.value);
+  const lvCls = LV_CLASS[levelOf(s)] || 'lv0';
+  // 场景点位数值（就地更新，不重建整页）
+  const slab = document.querySelector('#twinScene .slab[data-sid="' + s.id + '"]');
+  if (slab) {
+    const val = slab.querySelector('.slab-val');
+    if (val) { val.textContent = fmt2(s.value) + (s.unit || ''); val.className = 'slab-val ' + lvCls; }
+  }
+  // 右侧传感器列表项
+  const it = document.querySelector('#bsSensorList .bs-sitem[data-sid="' + s.id + '"]');
+  if (it) {
+    it.className = 'bs-sitem ' + lvCls;
+    const bv = it.querySelector('.bs-sval');
+    if (bv) bv.innerHTML = fmt2(s.value) + '<i>' + (s.unit || '') + '</i>';
+  }
+  renderKpi();
+  if (SELECTED && SELECTED.sid === s.id) {
+    if (demo.phase !== 'idle' && demo.sid === s.id) updateFusionLive();
+    else renderFusion();
+  }
+}
+
 function connectWS() {
   wsClient.on('sensor_update', (data) => {
-    if (!Array.isArray(data)) return;
-    data.forEach(s => {
-      if (demo.sid === s.id && demo.phase !== 'idle') return; // 演示期间忽略服务端覆盖
-      if (LOCAL_THR[s.id] !== undefined) s = { ...s, threshold: LOCAL_THR[s.id] }; // 保留本地演示阈值
-      SENSORS[s.id] = s;
-      pushHistory(s.id, s.value);
-    });
-    renderScene(); renderKpi();
-    if (SELECTED) {
-      // 演示进行中：仅原位刷新，避免整块重建打断滑杆等交互
-      if (demo.phase !== 'idle' && SELECTED.sid === demo.sid) updateFusionLive();
-      else renderFusion();
+    if (Array.isArray(data)) {
+      data.forEach(s => {
+        if (demo.sid === s.id && demo.phase !== 'idle') return; // 演示期间忽略服务端覆盖
+        if (LOCAL_THR[s.id] !== undefined) s = { ...s, threshold: LOCAL_THR[s.id] }; // 保留本地演示阈值
+        SENSORS[s.id] = s;
+        pushHistory(s.id, s.value);
+      });
+      renderScene(); renderKpi();
+      if (SELECTED) {
+        // 演示进行中：仅原位刷新，避免整块重建打断滑杆等交互
+        if (demo.phase !== 'idle' && SELECTED.sid === demo.sid) updateFusionLive();
+        else renderFusion();
+      }
+      if (!STATS) renderRisk();
+      return;
     }
-    if (!STATS) renderRisk();
+    // 单对象广播：就地更新对应传感器数值/状态，不重建整页
+    applySingleSensor(data);
   });
   wsClient.on('alert_update', (a) => {
     if (!a) return;

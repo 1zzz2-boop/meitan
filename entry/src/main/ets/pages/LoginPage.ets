@@ -145,7 +145,7 @@ struct LoginPage {
           // ===== 顶部品牌区（统一品牌名） =====
           Column() {
             Row() {
-              MineIcon({ name: 'pick', size: 18, color: this.accentColor })
+              MineIcon({ name: 'pick', iconSize: 18, color: this.accentColor })
                 .margin({ right: 8 })
               Text('深地智控 · 煤矿顶板智能预警平台')
                 .fontSize(12)
@@ -192,7 +192,7 @@ struct LoginPage {
           Row() {
             ForEach(this.roles, (role: RoleItem, index: number) => {
               Column() {
-                MineIcon({ name: role.sceneIcon, size: 16, color: this.roleIndex === index ? role.accent : this.pal().textDim })
+                MineIcon({ name: role.sceneIcon, iconSize: 16, color: this.roleIndex === index ? role.accent : this.pal().textDim })
                 Text(role.label)
                   .fontSize(12)
                   .fontWeight(this.roleIndex === index ? FontWeight.Bold : FontWeight.Normal)
@@ -236,7 +236,7 @@ struct LoginPage {
 
             // 用户名输入框
             Row() {
-              MineIcon({ name: 'user', size: 16, color: this.pal().textDim })
+              MineIcon({ name: 'user', iconSize: 16, color: this.pal().textDim })
                 .margin({ right: 10 })
               TextInput({ placeholder: '请输入用户名/手机号', text: this.username })
                 .layoutWeight(1)
@@ -254,7 +254,7 @@ struct LoginPage {
 
             // 密码输入框
             Row() {
-              MineIcon({ name: 'lock', size: 16, color: this.pal().textDim })
+              MineIcon({ name: 'lock', iconSize: 16, color: this.pal().textDim })
                 .margin({ right: 10 })
               TextInput({ placeholder: '请输入密码', text: this.password })
                 .layoutWeight(1)
@@ -273,7 +273,7 @@ struct LoginPage {
 
             // 验证码输入框 + 图形验证码
             Row() {
-              MineIcon({ name: 'shield', size: 16, color: this.pal().textDim })
+              MineIcon({ name: 'shield', iconSize: 16, color: this.pal().textDim })
                 .margin({ right: 10 })
               TextInput({ placeholder: '请输入验证码', text: this.captchaInput })
                 .layoutWeight(1)

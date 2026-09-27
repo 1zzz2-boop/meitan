@@ -141,7 +141,7 @@ body{
 .login-foot a{color:var(--accent);text-decoration:none;cursor:pointer}
 
 /* ============ 应用外壳 ============ */
-#app{position:fixed;inset:0;z-index:10;display:none;flex-direction:column}
+#app{position:fixed;inset:0;z-index:10;display:none;flex-direction:row}
 /* 侧边栏 */
 .sidebar{
   width:224px;flex:none;display:flex;flex-direction:column;
@@ -311,6 +311,15 @@ body{
 .s-card .s-bar i{display:block;height:100%;border-radius:2px;background:var(--green);transition:width .6s}
 .s-card.warn .s-bar i{background:var(--red)}
 .s-card .s-foot{display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:10.5px;color:var(--muted-2)}
+.s-card .s-spacer{flex:1}
+.s-card .trend-btn{font-family:var(--mono);font-size:10.5px;color:var(--accent);background:rgba(255,140,42,.1);border:1px solid rgba(255,140,42,.35);border-radius:6px;padding:3px 8px;cursor:pointer;transition:.15s}
+.s-card .trend-btn:hover{background:rgba(255,140,42,.22)}
+
+/* 历史趋势来源溯源标签 */
+.hist-src{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:12px}
+.hist-src:last-child{border-bottom:none}
+.hist-src .tag{font-family:var(--mono);font-weight:600;color:#111;padding:2px 8px;border-radius:4px;font-size:11px}
+.hist-src .addr{color:var(--muted-2);font-family:var(--mono);font-size:11px;margin-left:auto}
 
 /* 预警列表 */
 .alert-item{
@@ -534,6 +543,10 @@ body{
 .bar.orange i{background:var(--orange)}
 .bar.red i{background:var(--red)}
 .bar.cyan i{background:var(--cyan)}
+
+/* 高风险矿井行高亮 */
+.risk-row td:first-child{box-shadow:inset 3px 0 0 var(--orange)}
+.risk-row{background:linear-gradient(90deg,rgba(255,120,26,.10),rgba(255,120,26,0))}
 
 /* 选项卡 */
 .tabs{display:flex;gap:8px;flex-wrap:wrap}
@@ -871,4 +884,98 @@ body{
 .bs-geo-row span{color:var(--muted-2);flex:none}
 .bs-geo-row b{font-weight:500;color:var(--muted)}
 .bs-geo-tip{font-size:10.5px;color:var(--muted-2);line-height:1.7;margin-top:10px;padding:8px 10px;background:rgba(255,255,255,.02);border:1px dashed var(--border);border-radius:6px}
+
+/* ============ 统一登录页（左场景 + 右登录，三模式切换） ============ */
+.ls-wrap{position:fixed;inset:0;z-index:10;display:flex}
+/* ---- 左侧：监测场景 ---- */
+.ls-scene{
+  flex:1.45;min-width:0;display:flex;flex-direction:column;
+  background:linear-gradient(180deg,var(--bg-1) 0%,var(--bg-0) 60%);
+  border-right:1px solid var(--border);
+}
+.ls-top{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 26px;border-bottom:1px solid var(--border)}
+.ls-top .ls-brand{display:flex;align-items:center;gap:12px;min-width:0}
+.ls-top h1{font-size:16px;letter-spacing:.5px;white-space:nowrap}
+.ls-top p{font-size:10.5px;color:var(--muted);letter-spacing:.5px;margin-top:2px;white-space:nowrap}
+.ls-status{display:flex;align-items:center;gap:14px;flex:none}
+.ls-stage{flex:1;min-height:0;display:flex;flex-direction:column;padding:16px 26px 6px}
+.ls-stitle{display:flex;align-items:center;gap:12px;justify-content:center;margin-bottom:8px}
+.ls-stitle b{font-size:14px;letter-spacing:1px;color:var(--text);white-space:nowrap}
+.ls-stitle .tag{
+  font-size:10.5px;color:var(--muted);font-family:var(--mono);letter-spacing:0;
+  background:rgba(255,255,255,.03);border:1px solid var(--border);
+  padding:2px 10px;border-radius:999px;white-space:nowrap;
+}
+.ls-scene-svg{flex:1;min-height:0;display:flex;align-items:stretch;justify-content:center}
+.ls-scene-svg svg{width:100%;height:100%;max-width:940px}
+/* ---- 矿车驶入矿道动画 ---- */
+.cart-move{animation:cartMove 9s linear infinite}
+@keyframes cartMove{
+  0%{transform:translate(560px,366px)}
+  18%{transform:translate(380px,364px)}
+  36%{transform:translate(200px,366px)}
+  54%{transform:translate(20px,364px)}
+  72%{transform:translate(-160px,366px)}
+  90%{transform:translate(-300px,364px)}
+  100%{transform:translate(-380px,366px)}
+}
+.cart-wheel{animation:cartSpin 1s linear infinite;transform-box:fill-box;transform-origin:center}
+@keyframes cartSpin{to{transform:rotate(-360deg)}}
+.ls-foot{
+  display:flex;align-items:center;gap:10px;flex:none;
+  padding:12px 26px;font-size:11px;color:var(--muted);letter-spacing:.5px;
+  border-top:1px solid var(--border);font-family:var(--mono);
+}
+.ls-foot .led{width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block;flex:none}
+.ls-foot .led.red{background:var(--red)}
+.ls-foot .led.orange{background:var(--orange)}
+.ls-foot .led.amber{background:var(--amber)}
+.ls-foot b{color:var(--text);font-weight:600}
+.ls-foot .sep{color:var(--muted-2)}
+
+/* ---- 右侧：统一登录卡 ---- */
+.ls-login{
+  flex:1;min-width:420px;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(700px 520px at 20% -10%,rgba(120,140,160,.06),transparent 60%),var(--bg-0);
+  padding:30px 40px;
+}
+.ls-card{
+  width:400px;max-width:100%;
+  background:var(--panel);border:1px solid var(--border-strong);border-radius:10px;
+  padding:30px 34px 24px;box-shadow:var(--shadow);
+  animation:cardIn .5s cubic-bezier(.2,.8,.2,1);
+}
+/* 三模式切换 */
+.mode-tabs{display:flex;gap:4px;margin-bottom:24px;border-bottom:1px solid var(--border)}
+.mode-tab{
+  flex:1;display:flex;align-items:center;justify-content:center;gap:7px;
+  height:38px;border:none;background:none;cursor:pointer;
+  font-size:13px;font-weight:600;color:var(--muted);letter-spacing:1px;
+  border-bottom:2px solid transparent;transition:.18s;font-family:var(--sans);padding:0;
+}
+.mode-tab .mt-dot{width:6px;height:6px;border-radius:50%;background:var(--muted-2);transition:.18s;flex:none}
+.mode-tab:hover{color:var(--text)}
+.ls-card.m-ent .mode-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.ls-card.m-think .mode-tab.active{color:var(--green);border-bottom-color:var(--green)}
+.ls-card.m-sup .mode-tab.active{color:var(--amber);border-bottom-color:var(--amber)}
+.ls-card.m-ent .mode-tab.active .mt-dot{background:var(--accent)}
+.ls-card.m-think .mode-tab.active .mt-dot{background:var(--green)}
+.ls-card.m-sup .mode-tab.active .mt-dot{background:var(--amber)}
+/* 模式图标 */
+.ls-logo{display:flex;align-items:center;gap:12px;margin-bottom:22px}
+.ls-logo .mark{
+  width:44px;height:44px;border-radius:8px;flex:none;display:flex;align-items:center;justify-content:center;
+  background:var(--panel-2);border:1px solid var(--border-strong);transition:.2s;
+}
+.ls-card.m-ent .ls-logo .mark{color:var(--accent);border-color:rgba(255,140,42,.45)}
+.ls-card.m-think .ls-logo .mark{color:var(--green);border-color:rgba(61,220,132,.45)}
+.ls-card.m-sup .ls-logo .mark{color:var(--amber);border-color:rgba(245,197,66,.45)}
+.ls-logo h1{font-size:17px;letter-spacing:.5px}
+.ls-logo p{font-size:11px;color:var(--muted);margin-top:3px;letter-spacing:.5px}
+.ls-more{margin-top:18px;text-align:center;font-size:10.5px;color:var(--muted-2);letter-spacing:.3px}
+@media (max-width:960px){
+  .ls-wrap{flex-direction:column}
+  .ls-scene{flex:none;height:45vh;border-right:none;border-bottom:1px solid var(--border)}
+  .ls-login{flex:1;min-width:0;padding:24px}
+}
 

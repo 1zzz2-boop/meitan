@@ -8,7 +8,7 @@
       "phone"
     ],
     "deliveryWithInstall": true,
-    "installationFree": true,
+    "installationFree": false,
     "pages": "$profile:main_pages",
     "requestPermissions": [
       {

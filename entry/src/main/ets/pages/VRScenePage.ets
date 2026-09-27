@@ -28,6 +28,15 @@ const CARD_BG = '#1E242E';
 const ACCENT = '#2B63C6';
 const ACCENT_LIGHT = '#3D7BE0';
 
+// 后端实时传感器数据视图（WebSocket sensor_update → 双向 UDP 数据交互）
+interface SensorRealtime {
+  id: string;
+  value: number;
+  unit: string;
+  isWarning: boolean;
+  status: string;
+}
+
 @Entry
 @Component
 struct VRScenePage {
@@ -41,6 +50,16 @@ struct VRScenePage {
   @State selectedSensor: SensorData | null = null;
   @State cameraName: string = '默认视角';
   @State effectLevel: number = 0;
+
+  // 实时数据（WS sensor_update → 双向 UDP 数据交互）
+  @State realtimeData: SensorRealtime[] = [];
+  @State sendValue: string = '';
+  @State cmdIp: string = '192.168.137.1';
+  @State cmdPort: string = '8890';
+  @State cmdPayload: string = 'BEEP_ON';
+
+  // 实时订阅取消函数（页面卸载时释放，避免回调累积）
+  private unsubscribeRealtime: (() => void) | null = null;
 
   // 渲染模式
   private renderModes: VRRenderMode[] = [
@@ -58,6 +77,10 @@ struct VRScenePage {
 
   aboutToDisappear() {
     this.vrService.stopRendering();
+    if (this.unsubscribeRealtime !== null) {
+      this.unsubscribeRealtime();
+      this.unsubscribeRealtime = null;
+    }
     hilog.info(DOMAIN, TAG, 'VR场景页面卸载');
   }
 
@@ -68,6 +91,11 @@ struct VRScenePage {
     this.vrService.setInteractionCallback((event: VRInteractionEvent) => {
       const sensor = this.sensors.find(s => s.id === event.targetId);
       this.selectedSensor = sensor ?? null;
+    });
+
+    // 订阅后端实时传感器数据（双向 UDP 数据交互）
+    this.unsubscribeRealtime = this.vrService.subscribeSensors((payload: Object) => {
+      this.applyRealtime(payload);
     });
 
     if (this.sceneState === VRSceneState.IDLE) {
@@ -248,10 +276,10 @@ struct VRScenePage {
           }
           .width('100%')
 
-          Text(`${this.selectedSensor!.value.toFixed(2)} ${this.selectedSensor!.unit}`)
+          Text(`${this.rtNumber(this.selectedSensor!.id, this.selectedSensor!.value).toFixed(2)} ${this.rtUnit(this.selectedSensor!.id, this.selectedSensor!.unit)}`)
             .fontSize(20)
             .fontWeight(FontWeight.Bold)
-            .fontColor(this.selectedSensor!.isWarning ? '#E5484D' : ACCENT_LIGHT)
+            .fontColor(this.rtWarn(this.selectedSensor!.id, this.selectedSensor!.isWarning) ? '#E5484D' : ACCENT_LIGHT)
             .alignSelf(ItemAlign.Start)
             .margin({ top: 8 })
         }
@@ -352,6 +380,93 @@ struct VRScenePage {
       .width('100%')
       .layoutWeight(1)
       .scrollBar(BarState.Auto)
+
+      Divider()
+        .color('#2A3444')
+        .margin({ top: 6, bottom: 6 })
+
+      // —— VR 虚拟帧 / 控制指令 双向 UDP 交互 ——
+      Text('发送 VR 虚拟帧')
+        .fontSize(11)
+        .fontColor('#8A94A6')
+        .alignSelf(ItemAlign.Start)
+        .margin({ bottom: 4 })
+
+      Row() {
+        Text(this.selectedSensor ? this.selectedSensor!.name : '点击列表选中传感器')
+          .fontSize(10)
+          .fontColor(Color.White)
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+          .layoutWeight(1)
+      }
+      .width('100%')
+      .height(26)
+      .padding({ left: 6, right: 6 })
+      .backgroundColor('#1E242E')
+      .borderRadius(6)
+      .alignItems(VerticalAlign.Center)
+
+      TextInput({ placeholder: '输入数值，如 26.5', text: this.sendValue })
+        .height(28)
+        .fontSize(11)
+        .fontColor(Color.White)
+        .backgroundColor('#1E242E')
+        .borderRadius(6)
+        .margin({ top: 6 })
+        .onChange((v: string) => { this.sendValue = v; })
+
+      Button('发送虚拟帧')
+        .width('100%')
+        .height(30)
+        .fontSize(12)
+        .fontColor(Color.White)
+        .backgroundColor(ACCENT)
+        .borderRadius(15)
+        .margin({ top: 6 })
+        .onClick(() => this.sendVRFrame())
+
+      Text('转发指令到硬件')
+        .fontSize(11)
+        .fontColor('#8A94A6')
+        .alignSelf(ItemAlign.Start)
+        .margin({ top: 10, bottom: 4 })
+
+      TextInput({ placeholder: '目标 IP，如 192.168.137.1', text: this.cmdIp })
+        .height(26)
+        .fontSize(10)
+        .fontColor(Color.White)
+        .backgroundColor('#1E242E')
+        .borderRadius(6)
+        .onChange((v: string) => { this.cmdIp = v; })
+
+      TextInput({ placeholder: '目标端口，如 8890', text: this.cmdPort })
+        .height(26)
+        .fontSize(10)
+        .fontColor(Color.White)
+        .backgroundColor('#1E242E')
+        .borderRadius(6)
+        .margin({ top: 5 })
+        .onChange((v: string) => { this.cmdPort = v; })
+
+      TextInput({ placeholder: '指令内容，如 BEEP_ON', text: this.cmdPayload })
+        .height(26)
+        .fontSize(10)
+        .fontColor(Color.White)
+        .backgroundColor('#1E242E')
+        .borderRadius(6)
+        .margin({ top: 5 })
+        .onChange((v: string) => { this.cmdPayload = v; })
+
+      Button('转发指令')
+        .width('100%')
+        .height(30)
+        .fontSize(12)
+        .fontColor(Color.White)
+        .backgroundColor('#10B981')
+        .borderRadius(15)
+        .margin({ top: 6 })
+        .onClick(() => this.sendCmd())
     }
     .width(228)
     .height('100%')
@@ -370,9 +485,9 @@ struct VRScenePage {
           Text(sensor.name)
             .fontSize(12)
             .fontColor(Color.White)
-          Text(`${sensor.value.toFixed(2)} ${sensor.unit}`)
+          Text(`${this.rtNumber(sensor.id, sensor.value).toFixed(2)} ${this.rtUnit(sensor.id, sensor.unit)}`)
             .fontSize(10)
-            .fontColor(sensor.isWarning ? '#E5484D' : '#8A94A6')
+            .fontColor(this.rtWarn(sensor.id, sensor.isWarning) ? '#E5484D' : '#8A94A6')
         }
         .layoutWeight(1)
         .alignItems(HorizontalAlign.Start)
@@ -381,7 +496,7 @@ struct VRScenePage {
         Circle()
           .width(8)
           .height(8)
-          .fill(sensor.status === DeviceStatus.ONLINE ? '#3DDC84' : '#E5484D')
+          .fill(this.rtOnline(sensor.id, sensor.status) ? '#3DDC84' : '#E5484D')
       }
       .width('100%')
 
@@ -516,6 +631,131 @@ struct VRScenePage {
   private countOnline(): number {
     return this.sensors.filter(s => s.status === DeviceStatus.ONLINE).length;
   }
+
+  // ========================================
+  // 实时数据接入（双向 UDP，经后端转发）
+  // ========================================
+
+  /** 从后端传感器对象安全读取字符串字段 */
+  private strField(o: Record<string, Object>, key: string): string {
+    const val = o[key];
+    return typeof val === 'string' ? val : '';
+  }
+
+  /** 兼容全量数组/单对象/带 payload 字段的 sensor_update 帧，合并成实时视图 */
+  private applyRealtime(payload: Object): void {
+    let sourceList: Array<Object> = [];
+    if (Array.isArray(payload)) {
+      sourceList = payload as Array<Object>;
+    } else {
+      const obj = payload as Record<string, Object>;
+      const sub = obj['payload'];
+      if (Array.isArray(sub)) {
+        sourceList = sub as Array<Object>;
+      } else if (sub !== undefined) {
+        sourceList = [sub];
+      } else {
+        sourceList = [payload];
+      }
+    }
+
+    const next: SensorRealtime[] = [];
+    for (const item of sourceList) {
+      const o = item as Record<string, Object>;
+      const id = this.strField(o, 'id');
+      if (id.length === 0) {
+        continue;
+      }
+      const rawValue = o['value'];
+      let v = 0;
+      if (typeof rawValue === 'number') {
+        v = rawValue;
+      } else if (typeof rawValue === 'string') {
+        v = Number(rawValue) || 0;
+      }
+      const unit = this.strField(o, 'unit');
+      const status = this.strField(o, 'status');
+      next.push({
+        id: id,
+        value: v,
+        unit: unit,
+        isWarning: o['isWarning'] === true,
+        status: status.length > 0 ? status : 'ONLINE'
+      });
+    }
+    if (next.length > 0) {
+      this.realtimeData = next;
+    }
+  }
+
+  private rtFor(id: string): SensorRealtime | null {
+    for (const r of this.realtimeData) {
+      if (r.id === id) {
+        return r;
+      }
+    }
+    return null;
+  }
+
+  private rtNumber(id: string, base: number): number {
+    const r = this.rtFor(id);
+    return r ? r.value : base;
+  }
+
+  private rtUnit(id: string, base: string): string {
+    const r = this.rtFor(id);
+    return (r !== null && r.unit.length > 0) ? r.unit : base;
+  }
+
+  private rtWarn(id: string, base: boolean | undefined): boolean {
+    const r = this.rtFor(id);
+    return r !== null ? r.isWarning : (base === true);
+  }
+
+  private rtOnline(id: string, base: DeviceStatus): boolean {
+    const r = this.rtFor(id);
+    if (r !== null) {
+      return r.status === 'ONLINE' || r.status === 'WARNING';
+    }
+    return base === DeviceStatus.ONLINE;
+  }
+
+  /** 发送 VR 虚拟帧（模拟硬件上报，落库并广播） */
+  private async sendVRFrame(): Promise<void> {
+    const target = this.selectedSensor;
+    if (!target) {
+      promptAction.showToast({ message: '请先在右侧选中一个传感器', duration: 1500 });
+      return;
+    }
+    const val = Number(this.sendValue);
+    if (Number.isNaN(val)) {
+      promptAction.showToast({ message: '请输入合法数值', duration: 1500 });
+      return;
+    }
+    const r = await this.vrService.sendFrame(target.id, val);
+    promptAction.showToast({
+      message: r && r.sent ? `已发送 ${target.name}=${val}` : (r && r.message ? `发送失败: ${r.message}` : '发送失败'),
+      duration: 1800
+    });
+  }
+
+  /** 向指定硬件 ip:port 转发 UDP 控制指令 */
+  private async sendCmd(): Promise<void> {
+    const port = Number(this.cmdPort);
+    if (!this.cmdIp || this.cmdIp.length === 0 || Number.isNaN(port)) {
+      promptAction.showToast({ message: '请输入正确的目标 IP 与端口', duration: 1500 });
+      return;
+    }
+    const r = await this.vrService.sendCommand(this.cmdIp, port, this.cmdPayload);
+    promptAction.showToast({
+      message: r && r.sent ? `指令已转发 → ${this.cmdIp}:${port}` : (r && r.message ? `转发失败: ${r.message}` : '转发失败'),
+      duration: 1800
+    });
+  }
+
+  // ========================================
+  // 实时数据接入（End）
+  // ========================================
 
   private getSceneStateText(): string {
     switch (this.sceneState) {

@@ -1,4 +1,4 @@
-﻿/node_modules
+/node_modules
 /oh_modules
 /local.properties
 /.idea
@@ -31,4 +31,7 @@
 
 # 任意层级的 hvigor 构建缓存
 **/.hvigor/
+
+# YOLO 训练工程（含 2 GB 级模型权重、数据集与安装包，不入库）
+/yolo_detection_project
 

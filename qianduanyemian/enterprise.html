@@ -5,7 +5,7 @@
 <title>企业端 · 深地智控</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="assets/style.css?v=20260915">
 </head>
 <body>
 <div class="app-bg"></div>
@@ -104,7 +104,7 @@
         <div class="grid g-4" id="monKpis"></div>
         <div class="grid g-12" style="margin-top:16px">
           <div class="panel col-12">
-            <div class="panel-title">传感器实时监测<span class="tag l" id="monTag">实时数据</span><button class="btn sm" id="pauseBtn" onclick="togglePause()">暂停刷新</button></div>
+            <div class="panel-title">传感器实时监测<span class="tag l" id="monTag">实时数据</span><select id="mineFilter" onchange="setMineFilter()" style="margin-left:12px;background:#0c1420;color:#c8d3e0;border:1px solid #2a3a4d;border-radius:6px;padding:3px 8px;font-size:12px;font-family:var(--mono)"><option value="1">矿井 1</option><option value="2">矿井 2</option><option value="3">矿井 3</option><option value="all">全部矿井</option></select><button class="btn sm" id="pauseBtn" onclick="togglePause()">暂停刷新</button></div>
             <div class="sensor-grid" id="sensorGrid"></div>
           </div>
         </div>
@@ -239,7 +239,7 @@
 </div>
 <div class="modal-mask" id="modalMask"><div class="modal" id="modalBox"></div></div>
 <div class="toast" id="toast"></div>
-<script src="assets/app.js?v=20260914"></script>
+<script src="assets/app.js?v=20260924"></script>
 <script>
 /* ============================================================
    企业端 · 生产矿井（现场管控）门户逻辑
@@ -288,6 +288,7 @@ const PAGE_META = {
 
 /* ---------------- 状态 ---------------- */
 let SENSORS = [];        // /api/sensor/all
+let MINE_FILTER = '1';   // 实时监测矿井筛选：'all' 或具体矿井号
 let SENSOR_STATS = null; // /api/sensor/stats
 let ALERTS = [];         // /api/alert/all
 let TREND = [];          // /api/analysis/trend
@@ -339,6 +340,17 @@ function threatColor(c) {
 }
 
 /* ---------------- 数据加载 ---------------- */
+// 轮询兜底：不依赖 WebSocket，每 2 秒拉取最新传感器数据并刷新监测网格（兼容 file:// 在不确定 WS 消息是否可达时也能实时）
+(function pollSensors() {
+  const grid = document.getElementById('sensorGrid');
+  if (grid) {
+    api('/sensor/all').then((rows) => {
+      if (Array.isArray(rows) && rows.length) { SENSORS = rows; renderMonitor(); }
+    }).catch(() => {});
+  }
+  setTimeout(pollSensors, 2000);
+})();
+
 async function loadSensors() {
   try { SENSORS = await api('/sensor/all'); } catch (e) { console.warn('[sensor/all]', e.message); }
 }
@@ -408,7 +420,7 @@ function alertItem(a) {
   return `<div class="alert-item lv-${lc}">
     <div class="a-level">${esc(txt[0])}</div>
     <div class="a-body">
-      <div class="a-t">${esc(a.sensor_name || '传感器')} <span class="badge ${lc}">${txt}预警</span></div>
+      <div class="a-t">${esc(a.sensor_name || '传感器')} <span class="badge ${lc}">${txt}预警</span>${a.raised_count > 0 ? `<span class="badge ${lc}" title="${esc(a.escalation_note || '自动升级')}" style="margin-left:4px;">已升级×${a.raised_count}</span>` : ''}</div>
       <div class="a-m">${esc(a.message || '')}</div>
       <div class="a-time">${fmtTime(a.created_at)}</div>
     </div>
@@ -419,25 +431,86 @@ function alertItem(a) {
    实时监测
    ============================================================ */
 function renderMonitor() {
-  const total = SENSORS.length;
-  const online = SENSORS.filter(s => s.status === 'ONLINE').length;
-  const warning = SENSORS.filter(s => s.isWarning || isOverThreshold(s)).length;
+  const list = MINE_FILTER === 'all'
+    ? SENSORS
+    : SENSORS.filter(s => String(s.mine_id) === MINE_FILTER);
+  const total = list.length;
+  const online = list.filter(s => s.status === 'ONLINE').length;
+  const warning = list.filter(s => s.isWarning || isOverThreshold(s)).length;
   $('#monKpis').innerHTML =
     kpiCard('antenna', '在线传感器', online + '/' + total, '台', `<span class="up">●</span> 传感网络在线`) +
     kpiCard('alert', '预警传感器', warning, '台', warning ? '超阈值需关注' : '全部正常') +
     kpiCard('clock', '采样频率', '10', '秒/次', '边缘节点周期采集') +
     kpiCard('send', '传输协议', 'LoRa+MQTT', '', '井下组网 · 实时上行');
 
-  $('#sensorGrid').innerHTML = SENSORS.length
-    ? SENSORS.map(sensorCard).join('')
-    : `<div class="empty" style="grid-column:1/-1"><div class="e">${ico('antenna', 30)}</div><div>暂无传感器数据</div></div>`;
+  $('#sensorGrid').innerHTML = total
+    ? list.map(sensorCard).join('')
+    : `<div class="empty" style="grid-column:1/-1"><div class="e">${ico('antenna', 30)}</div><div>该矿井暂无传感器数据</div></div>`;
 
-  document.querySelectorAll('#sensorGrid .s-card').forEach(el => {
-    el.addEventListener('click', () => {
-      const s = SENSORS.find(x => x.id === el.dataset.id);
-      if (s) showSensorDetail(s);
-    });
+  document.querySelectorAll('#sensorGrid .s-card').forEach(bindSensorCard);
+}
+
+function bindSensorCard(el) {
+  el.addEventListener('click', (ev) => {
+    const trg = ev.target && ev.target.closest ? ev.target.closest('[data-trend]') : null;
+    if (trg) {
+      const ts = SENSORS.find(x => x.id === trg.getAttribute('data-trend'));
+      if (ts) { openSensorHistory(ts); return; }
+    }
+    const s = SENSORS.find(x => x.id === el.dataset.id);
+    if (s) showSensorDetail(s);
   });
+}
+
+function setMineFilter() {
+  const el = document.getElementById('mineFilter');
+  if (el) { MINE_FILTER = el.value; renderMonitor(); }
+}
+
+/* 就地更新某张传感器卡片（不重建整个网格，保证卡片位置固定） */
+function applySensorUpdate(s) {
+  let el = document.querySelector('#sensorGrid .s-card[data-id="' + s.id + '"]');
+  if (!el) {
+    // 卡片不存在（切换矿井等边界）→ 仅追加这一张卡片，不重建整个网格；非当前矿井则等全量快照
+    if (MINE_FILTER !== 'all' && String(s.mine_id) !== String(MINE_FILTER)) return;
+    const grid = document.getElementById('sensorGrid');
+    if (!grid) return;
+    const empty = grid.querySelector('.empty');
+    if (empty && grid.children.length === 1) grid.innerHTML = ''; // 清空空态占位
+    grid.insertAdjacentHTML('beforeend', sensorCard(s));
+    el = document.querySelector('#sensorGrid .s-card[data-id="' + s.id + '"]');
+    if (el) bindSensorCard(el);
+    return;
+  }
+  const over = isOverThreshold(s);
+  const level = alertLevelOf(s);
+  const dev = isDevice(s.type);
+  el.classList.toggle('warn', !!over);
+  let pct = 0;
+  if (!dev && s.threshold) {
+    pct = Math.round((s.type === 'ULTRASONIC_DISTANCE' ? (s.threshold - s.value) / s.threshold : s.value / s.threshold) * 100);
+    pct = Math.max(0, Math.min(100, pct));
+  }
+  const valEl = el.querySelector('.s-val');
+  if (valEl) {
+    valEl.innerHTML = dev
+      ? `<span style="color:${s.status === 'ONLINE' ? 'var(--green)' : 'var(--red)'}">${s.status === 'ONLINE' ? '在线' : '离线'}</span>`
+      : `${fmt2(s.value)}<em>${esc(s.unit || '')}</em>`;
+  }
+  const bar = el.querySelector('.s-bar i');
+  if (bar) bar.style.width = pct + '%';
+  const bd = el.querySelector('.badge');
+  if (bd) {
+    const cls = level ? levelClass(level) : (dev ? '' : 'green');
+    bd.className = 'badge ' + cls;
+    bd.textContent = level ? LEVEL_TXT[level] : (dev ? '' : '正常');
+  }
+  const foot = el.querySelector('.s-foot');
+  if (foot) {
+    const spans = foot.querySelectorAll('span');
+    if (spans[0]) spans[0].textContent = thresholdTxt(s);
+    if (spans[1]) spans[1].textContent = s.status === 'ONLINE' ? '在线' : '离线';
+  }
 }
 
 function sensorCard(s) {
@@ -455,7 +528,7 @@ function sensorCard(s) {
     : `${fmt2(s.value)}<em>${esc(s.unit || '')}</em>`;
   const badge = level ? `<span class="badge ${levelClass(level)}">${LEVEL_TXT[level]}</span>` : (dev ? '' : '<span class="badge green">正常</span>');
   return `<div class="s-card ${over ? 'warn' : ''}" data-id="${esc(s.id)}">
-    <div class="s-top"><span class="s-ico">${meta.icon}</span>${badge}</div>
+    <div class="s-top"><span class="s-ico">${meta.icon}</span>${badge}<span class="s-spacer"></span><button class="trend-btn" data-trend="${esc(s.id)}" title="历史趋势与来源溯源">📈 趋势</button></div>
     <div class="s-name">${esc(s.name)}</div>
     <div class="s-desc">${esc(s.description || '')}</div>
     <div class="s-val">${valHtml}</div>
@@ -482,6 +555,89 @@ function showSensorDetail(s) {
     <div class="m-desc">${esc(s.description || '暂无描述')}</div>
     <div class="m-actions"><button class="btn ghost" onclick="closeModal()">关闭</button></div>
   `);
+}
+
+/* ============================================================
+   历史趋势与来源溯源（P0）
+   ============================================================ */
+async function loadHist(s, iv) {
+  const histEl = $('#histChart'), srcEl = $('#histSources');
+  if (!histEl) return;
+  histEl.innerHTML = '<div style="padding:30px;text-align:center;color:var(--muted-2)">加载中…</div>';
+  const dt = new Date();
+  const to = dt.toISOString();
+  const from = new Date(dt.getTime() - (iv === 'day' ? 30 : 24) * 3600 * 1000).toISOString();
+  try {
+    const r = await api('/sensor/' + encodeURIComponent(s.id) + '/history?interval=' + iv +
+      '&from=' + encodeURIComponent(from) + '&to=' + encodeURIComponent(to));
+    const pts = r.points || [];
+    if (!pts.length) {
+      histEl.innerHTML = emptySmall('当前时段暂无历史数据');
+      if (srcEl) srcEl.innerHTML = '';
+      return;
+    }
+    const vals = pts.map(p => Number(p.avg));
+    const step = Math.max(1, Math.round(pts.length / 8));
+    const labels = pts.map((p, i) => (i % step === 0 || i === pts.length - 1) ? histLabel(p.ts, iv) : '');
+    renderLineChart('#histChart', vals, { labels, stroke: '#FF8C2A' });
+    renderSources('#histSources', r.sources);
+  } catch (e) {
+    histEl.innerHTML = emptySmall('历史趋势获取失败');
+    if (srcEl) srcEl.innerHTML = '';
+  }
+}
+
+function histLabel(ts, iv) {
+  const d = new Date(ts);
+  if (isNaN(d.getTime())) return String(ts).slice(5, 16).replace('T', ' ');
+  const p = n => String(n).padStart(2, '0');
+  return iv === 'day' ? (d.getMonth() + 1) + '/' + d.getDate() : p(d.getHours()) + ':' + p(d.getMinutes());
+}
+
+function histSrcColor(src) {
+  if (src === 'mqtt') return '#3DDC84';
+  if (src === 'udp') return '#4A9CFF';
+  if (src === 'simulator') return '#F5C542';
+  return '#8A8F98';
+}
+function histSrcText(src) {
+  if (src === 'mqtt') return 'MQTT';
+  if (src === 'udp') return 'UDP';
+  if (src === 'simulator') return '模拟器';
+  if (src === 'legacy') return '存量库';
+  return String(src || '').toUpperCase() || '未知';
+}
+function renderSources(sel, list) {
+  const el = $(sel); if (!el) return;
+  const arr = list || [];
+  const total = arr.reduce((a, x) => a + (Number(x.samples) || 0), 0);
+  if (!arr.length) { el.innerHTML = '<div style="font-size:12px;color:var(--muted-2)">无来源标签（存量数据）</div>'; return; }
+  el.innerHTML = '<div style="font-size:12px;color:var(--muted);margin-bottom:4px">数据来源溯源 · 共 ' + total + ' 条样本</div>' +
+    arr.map(x => '<div class="hist-src"><span class="tag" style="background:' + histSrcColor(x.source) + '">' + histSrcText(x.source) +
+      '</span><span>' + (Number(x.samples) || 0) + ' 条</span><span class="addr">' + (esc(x.source_addr) || '—') + '</span></div>').join('');
+}
+
+function openSensorHistory(s) {
+  const meta = sensorMeta(s.type);
+  const iv = 'hour';
+  openModal('<h3>' + meta.icon + ' ' + esc(s.name) + ' · 历史趋势</h3>' +
+    '<div class="m-row"><span>设备 ID</span><b>' + esc(s.id) + '</b></div>' +
+    '<div class="m-actions" style="justify-content:flex-start;margin-top:6px">' +
+    '<button class="btn sm solid" id="hHour" onclick="switchHist(\'' + esc(s.id) + '\',\'hour\')">按时</button>' +
+    '<button class="btn sm ghost" id="hDay" onclick="switchHist(\'' + esc(s.id) + '\',\'day\')">按日</button></div>' +
+    '<div id="histChart" style="height:210px;margin-top:10px"></div>' +
+    '<div id="histSources" style="margin-top:8px"></div>' +
+    '<div class="m-actions"><button class="btn ghost" onclick="closeModal()">关闭</button></div>');
+  loadHist(s, iv);
+}
+
+function switchHist(id, iv) {
+  const s = SENSORS.find(x => x.id === id);
+  if (!s) return;
+  const h = $('#hHour'), d = $('#hDay');
+  if (h) h.className = (iv === 'hour' ? 'btn sm solid' : 'btn sm ghost');
+  if (d) d.className = (iv === 'day' ? 'btn sm solid' : 'btn sm ghost');
+  loadHist(s, iv);
 }
 
 function togglePause() {
@@ -952,7 +1108,13 @@ if (session) {
   wsClient.connect('enterprise');
   wsClient.on('sensor_update', (data) => {
     if (PAUSED) return; // 暂停时忽略实时刷新
-    if (Array.isArray(data)) { SENSORS = data; renderAll(); }
+    if (Array.isArray(data)) { SENSORS = data; renderAll(); return; }
+    // 后端 bridge 广播单对象时：就地合并到 SENSORS，避免整页/图表重绘
+    if (data && data.id) {
+      const i = SENSORS.findIndex(x => x && x.id === data.id);
+      if (i >= 0) SENSORS[i] = data; else SENSORS.push(data);
+      applySensorUpdate(data);
+    }
   });
   wsClient.on('alert_update', (alert) => {
     if (!alert) return;

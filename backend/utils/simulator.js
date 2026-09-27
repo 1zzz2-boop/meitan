@@ -1,4 +1,4 @@
-﻿const { query } = require('../config/database');
+const { query } = require('../config/database');
 const alertService = require('../services/alert.service');
 const wsHub = require('./wsHub');
 
@@ -95,7 +95,7 @@ async function tick() {
             s.value = nv;
 
             await query(`UPDATE sensors SET value = $2, updated_at = now() WHERE id = $1`, [s.id, nv]);
-            await query(`INSERT INTO sensor_history (sensor_id, value) VALUES ($1, $2)`, [s.id, nv]);
+            await query(`INSERT INTO sensor_history (sensor_id, value, source) VALUES ($1, $2, 'simulator')`, [s.id, nv]);
 
             if (isOverThreshold(s) && !(await alertService.hasOpenAlert(s.id))) {
                 const alert = await alertService.createAlert({

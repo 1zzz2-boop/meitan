@@ -14,6 +14,12 @@ const supervisionController = {
         } catch (error) { next(error); }
     },
 
+    async getMineComparison(req, res, next) {
+        try {
+            res.json(await supervisionService.getMineComparison());
+        } catch (error) { next(error); }
+    },
+
     async getDispatches(req, res, next) {
         try {
             res.json(await supervisionService.getDispatches());
